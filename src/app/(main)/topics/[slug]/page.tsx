@@ -74,9 +74,11 @@ async function Topic({ params }: { params: Promise<{ slug: string }> }) {
         <span>
           <span className="font-bold text-foreground">{articles.length}</span> stories today
         </span>
-        <span>
-          <span className="font-bold text-foreground">{formatCount(reads)}</span> reads
-        </span>
+        {reads > 0 ? (
+          <span>
+            <span className="font-bold text-foreground">{formatCount(reads)}</span> reads
+          </span>
+        ) : null}
       </div>
 
       {articles.length > 0 ? (

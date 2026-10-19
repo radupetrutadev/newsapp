@@ -1,4 +1,4 @@
-// Mirrors supabase/migrations/20261014000000_init.sql.
+// Mirrors supabase/migrations.
 // Regenerate with: npx supabase gen types typescript --project-id <id> > src/lib/supabase/database.types.ts
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -186,9 +186,52 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["follows"]["Insert"]>;
         Relationships: [];
       };
+      feeds: {
+        Row: {
+          id: string;
+          source_id: string;
+          url: string;
+          category: string;
+          active: boolean;
+          etag: string | null;
+          last_modified: string | null;
+          last_fetched_at: string | null;
+          last_success_at: string | null;
+          last_error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          source_id: string;
+          url: string;
+          category: string;
+          active?: boolean;
+          etag?: string | null;
+          last_modified?: string | null;
+          last_fetched_at?: string | null;
+          last_success_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["feeds"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "feeds_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      replace_trends: {
+        Args: { items: Json };
+        Returns: undefined;
+      };
+    };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel>
+    <title><![CDATA[Example News - World]]></title>
+    <link>https://news.example.com/world</link>
+    <atom:link href="https://feeds.example.com/news/world/rss.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title><![CDATA[Leaders agree Gaza aid corridor after overnight talks]]></title>
+      <description><![CDATA[Aid lorries are expected to cross within days, officials say.]]></description>
+      <link>https://news.example.com/world-123?at_medium=RSS&amp;at_campaign=rss</link>
+      <guid isPermaLink="false">https://news.example.com/world-123#0</guid>
+      <pubDate>Sun, 19 Oct 2026 09:15:00 GMT</pubDate>
+      <media:thumbnail width="240" height="135" url="https://images.example.com/240/aid.jpg"/>
+    </item>
+    <item>
+      <title><![CDATA[Breaking: Strong earthquake shakes Pacific coast]]></title>
+      <description><![CDATA[Residents were told to move to higher ground.]]></description>
+      <link>https://news.example.com/world-124?at_medium=RSS&amp;at_campaign=rss</link>
+      <guid isPermaLink="false">https://news.example.com/world-124#0</guid>
+      <pubDate>Sun, 19 Oct 2026 11:40:00 GMT</pubDate>
+    </item>
+    <item>
+      <title><![CDATA[Archive story from last week]]></title>
+      <description><![CDATA[Too old to import.]]></description>
+      <link>https://news.example.com/world-001</link>
+      <pubDate>Sun, 05 Oct 2026 08:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title><![CDATA[Story without a link]]></title>
+      <description><![CDATA[Skipped because it cannot be deduplicated.]]></description>
+      <pubDate>Sun, 19 Oct 2026 08:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

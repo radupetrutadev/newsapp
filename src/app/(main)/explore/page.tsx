@@ -12,14 +12,22 @@ import { Cover } from "@/components/ui/cover";
 import { TimeAgo } from "@/components/ui/time-ago";
 import { categories, categoryName } from "@/lib/categories";
 import { getFeed, getSources, getTrends } from "@/lib/data";
-import { formatCount } from "@/lib/utils";
+import { formatCount, storyCount } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Explore" };
 
 export default async function ExplorePage() {
   const [feed, trends, sources] = await Promise.all([getFeed(), getTrends(), getSources()]);
-  const [top, ...rest] = [...feed].sort((a, b) => b.stats.views - a.stats.views);
-  const carousel = rest.slice(0, 6);
+  // Rank by reads when they're tracked; otherwise lead with a fresh story that has a photo.
+  const mostRead = [...feed].sort((a, b) => b.stats.views - a.stats.views);
+  const hasReads = (mostRead[0]?.stats.views ?? 0) > 0;
+  const top = hasReads
+    ? mostRead[0]
+    : (feed.find((article) => article.isBreaking && article.imageUrl) ??
+      feed.find((article) => article.imageUrl) ??
+      feed[0]);
+  const carousel = (hasReads ? mostRead : feed).filter((article) => article !== top).slice(0, 6);
+  const heroLabel = hasReads ? "Most read today" : top?.isBreaking ? "Breaking" : "Top story";
 
   return (
     <>
@@ -38,14 +46,15 @@ export default async function ExplorePage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-4">
             <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground/90">
-              <LiveDot /> {categoryName(top.category)} · Most read today
+              <LiveDot /> {categoryName(top.category)} · {heroLabel}
             </p>
             <h2 className="mt-1 text-2xl leading-7 font-extrabold tracking-tight text-pretty group-hover:underline sm:text-[28px] sm:leading-8">
               {top.title}
             </h2>
             <p className="mt-2 flex items-center gap-2 text-[13px] text-foreground/80">
               <SourceAvatar source={top.source} size={20} /> {top.source.name} ·{" "}
-              <TimeAgo iso={top.publishedAt} /> · {formatCount(top.stats.views)} reads
+              <TimeAgo iso={top.publishedAt} />
+              {top.stats.views > 0 ? ` · ${formatCount(top.stats.views)} reads` : null}
             </p>
           </div>
         </Link>
@@ -94,7 +103,7 @@ export default async function ExplorePage() {
                   <span className="block text-[13px] text-muted">{trend.context}</span>
                   <span className="block text-[15px] font-bold">{trend.topic}</span>
                   <span className="block text-[13px] text-muted">
-                    {formatCount(trend.postsCount)} posts
+                    {storyCount(trend.postsCount)}
                   </span>
                 </span>
               </Link>

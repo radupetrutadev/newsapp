@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartNoAxesColumn, Heart, MessageCircle, Repeat2 } from "lucide-react";
+import { Heart, MessageCircle, Repeat2 } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { UserAvatar } from "@/components/ui/avatar";
@@ -10,7 +10,7 @@ import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { postComment } from "@/lib/actions/comments";
 import { toast } from "@/lib/store/toast";
 import type { Comment, Viewer } from "@/lib/types";
-import { cn, formatCount, hashString } from "@/lib/utils";
+import { cn, formatCount } from "@/lib/utils";
 
 const MAX_LENGTH = 280;
 
@@ -156,7 +156,7 @@ function Composer({
 
 function CommentItem({ comment, onReply }: { comment: Comment; onReply: () => void }) {
   const [liked, setLiked] = useState(false);
-  const views = (hashString(comment.id) % 9_000) + comment.likesCount * 12;
+  const likes = comment.likesCount + (liked ? 1 : 0);
 
   return (
     <article className="flex gap-3 border-b border-border px-4 pt-3 pb-2 transition-colors hover:bg-white/[0.03]">
@@ -199,14 +199,10 @@ function CommentItem({ comment, onReply }: { comment: Comment; onReply: () => vo
                 strokeWidth={1.9}
               />
             </span>
-            <span className="pl-1 text-[13px] tabular-nums">
-              {formatCount(comment.likesCount + (liked ? 1 : 0))}
-            </span>
+            {likes > 0 ? (
+              <span className="pl-1 text-[13px] tabular-nums">{formatCount(likes)}</span>
+            ) : null}
           </button>
-          <span className="flex items-center" title="Views">
-            <ChartNoAxesColumn className="size-[18px]" strokeWidth={1.9} />
-            <span className="pl-1 text-[13px] tabular-nums">{formatCount(views)}</span>
-          </span>
         </div>
       </div>
     </article>

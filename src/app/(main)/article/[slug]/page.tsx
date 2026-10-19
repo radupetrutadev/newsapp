@@ -63,6 +63,12 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
 
   const related = await getRelatedArticles(article, 4);
   const { source, stats } = article;
+  // Like X, only non-zero counts are shown.
+  const engagement = [
+    { label: "Reposts", value: stats.reposts },
+    { label: "Likes", value: stats.likes },
+    { label: "Replies", value: stats.comments },
+  ].filter(({ value }) => value > 0);
 
   return (
     <>
@@ -129,35 +135,56 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
         ) : null}
 
         {article.url ? (
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonClasses({ variant: "outline", className: "mt-5" })}
-          >
-            Read the full story at {hostname(article.url)} <ExternalLink className="size-4" />
-          </a>
+          article.body.length === 0 ? (
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group mt-5 flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 transition-colors hover:bg-surface-hover"
+            >
+              <SourceAvatar source={source} size={40} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-bold group-hover:underline">
+                  Read the full story at {source.name}
+                </span>
+                <span className="block truncate text-[13px] text-muted">{hostname(article.url)}</span>
+              </span>
+              <ExternalLink className="size-5 shrink-0 text-accent" />
+            </a>
+          ) : (
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonClasses({ variant: "outline", className: "mt-5" })}
+            >
+              Read the full story at {hostname(article.url)} <ExternalLink className="size-4" />
+            </a>
+          )
         ) : null}
 
         <p className="mt-5 pb-4 text-[15px] text-muted">
-          <ArticleTimestamp iso={article.publishedAt} /> ·{" "}
-          <span className="font-bold text-foreground">{formatCount(stats.views)}</span> Views
+          <ArticleTimestamp iso={article.publishedAt} />
+          {stats.views > 0 ? (
+            <>
+              {" "}
+              · <span className="font-bold text-foreground">{formatCount(stats.views)}</span> Views
+            </>
+          ) : null}
         </p>
       </article>
 
-      <div className="mx-4 flex gap-5 border-y border-border py-4 text-[15px] text-muted">
-        <span>
-          <span className="font-bold text-foreground">{formatCount(stats.reposts)}</span> Reposts
-        </span>
-        <span>
-          <span className="font-bold text-foreground">{formatCount(stats.likes)}</span> Likes
-        </span>
-        <span>
-          <span className="font-bold text-foreground">{formatCount(stats.comments)}</span> Replies
-        </span>
-      </div>
+      {engagement.length > 0 ? (
+        <div className="mx-4 flex gap-5 border-t border-border py-4 text-[15px] text-muted">
+          {engagement.map(({ label, value }) => (
+            <span key={label}>
+              <span className="font-bold text-foreground">{formatCount(value)}</span> {label}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
-      <div className="mx-4 border-b border-border py-2">
+      <div className="mx-4 border-y border-border py-2">
         <ArticleActions article={article} size="detail" />
       </div>
 

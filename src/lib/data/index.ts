@@ -1,4 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
+import { categoryName } from "@/lib/categories";
 import { mockArticles } from "@/lib/mock/articles";
 import { mockComments, mockNotifications, mockTrends, mockUsers } from "@/lib/mock/community";
 import { mockSources } from "@/lib/mock/sources";
@@ -196,10 +197,22 @@ export async function search(rawQuery: string): Promise<SearchResults> {
 
   return {
     articles: feed.filter((article) =>
-      matches(article.title, article.summary, article.category, ...article.tags),
+      matches(
+        article.title,
+        article.summary,
+        article.category,
+        categoryName(article.category),
+        ...article.tags,
+      ),
     ),
     sources: sources.filter((source) =>
-      matches(source.name, source.handle, source.description, source.category),
+      matches(
+        source.name,
+        source.handle,
+        source.description,
+        source.category,
+        categoryName(source.category),
+      ),
     ),
   };
 }

@@ -1,9 +1,16 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { Cover } from "@/components/ui/cover";
 import type { Article } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** The article's photo, or generated cover art when it has none. */
+/**
+ * The story's photo, or generated cover art when it has none. Publisher
+ * images can disappear or block hotlinking, so a failed load falls back to
+ * the cover too.
+ */
 export function ArticleMedia({
   article,
   className,
@@ -15,15 +22,19 @@ export function ArticleMedia({
   sizes?: string;
   priority?: boolean;
 }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const imageUrl = article.imageUrl !== failedUrl ? article.imageUrl : null;
+
   return (
     <div className={cn("relative aspect-video overflow-hidden", className)}>
-      {article.imageUrl ? (
+      {imageUrl ? (
         <Image
-          src={article.imageUrl}
+          src={imageUrl}
           alt={article.title}
           fill
           sizes={sizes}
           priority={priority}
+          onError={() => setFailedUrl(imageUrl)}
           className="object-cover"
         />
       ) : (

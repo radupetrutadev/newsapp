@@ -15,3 +15,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Keep imports in `src/lib/mock` type-only so `scripts/generate-seed.mjs` can load them with plain Node; rerun `npm run db:seed:generate` after editing mock data.
 - `src/lib/supabase/database.types.ts` mirrors `supabase/migrations`; update both together.
 - Dark mode only. Use the color tokens in `src/app/globals.css` (`bg-surface`, `text-muted`, `border-border`, `text-accent`, …) rather than raw hex values.
+- News ingestion lives in `src/lib/ingest` (parse → normalize → store, plus trends) and runs from `src/app/api/ingest/route.ts` with the service-role client in `src/lib/supabase/admin.ts`. Keep ingestion logic free of Supabase imports so it stays testable; only `supabase-store.ts` talks to the database.
+- Run `npm test` after changing `src/lib/ingest`. Feed fixtures are in `src/lib/ingest/__fixtures__`.
+- Never show invented numbers for real content: counts of 0 are hidden in the UI.

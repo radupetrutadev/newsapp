@@ -41,11 +41,11 @@ insert into public.articles (slug, source_id, title, summary, body, category, ta
 on conflict (slug) do nothing;
 
 insert into public.trends (context, topic, posts_count, category, position) values
-  ('Climate · Live', 'Methane Deal', 182000, 'climate', 0),
-  ('Technology · Trending', '#OpenSourceAI', 96400, 'tech', 1),
-  ('Sports · Trending', 'Overtime Thriller', 241000, 'sports', 2),
-  ('Business · Trending', 'Rate Cuts', 48900, 'business', 3),
-  ('Entertainment · Trending', '#SurpriseDrop', 512000, 'entertainment', 4),
-  ('Science · Trending', 'Water Ice', 37200, 'science', 5),
-  ('Politics · Trending', 'Privacy Bill', 29800, 'politics', 6),
-  ('Trending in World', 'High-Speed Rail', 21500, 'world', 7);
+  ('Climate · Live', 'Methane Deal', 14, 'climate', 0),
+  ('Technology · Trending', '#OpenSourceAI', 11, 'tech', 1),
+  ('Sports · Trending', 'Overtime Thriller', 9, 'sports', 2),
+  ('Business · Trending', 'Rate Cuts', 8, 'business', 3),
+  ('Entertainment · Trending', '#SurpriseDrop', 7, 'entertainment', 4),
+  ('Science · Trending', 'Water Ice', 6, 'science', 5),
+  ('Politics · Trending', 'Privacy Bill', 5, 'politics', 6),
+  ('Trending in World', 'High-Speed Rail', 4, 'world', 7);

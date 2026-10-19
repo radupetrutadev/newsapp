@@ -56,7 +56,7 @@ function ActionInner({
           strokeWidth={active ? 2.3 : 1.9}
         />
       </span>
-      {count !== undefined ? (
+      {count ? (
         <span className="min-w-[2ch] pl-1 text-[13px] tabular-nums">{formatCount(count)}</span>
       ) : null}
     </>
