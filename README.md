@@ -80,7 +80,7 @@ Real stories come from publishers' public RSS and Atom feeds. `/api/ingest` poll
    - `CRON_SECRET` — any long random string, e.g. `openssl rand -hex 32`.
 2. Run it once locally: start `npm run dev`, then `npm run ingest` in another terminal. It prints one line per feed and how many stories were added.
 3. Schedule it in production — every 15 minutes is a good default:
-   - **Supabase (free on all plans):** fill in your site URL and secret in `supabase/cron.sql` and run it in the SQL editor.
+   - **Supabase (free on all plans):** paste your `CRON_SECRET` into `supabase/cron.sql` in the SQL editor and run it. The secret is stored in Supabase Vault; change the site URL in the file if you deploy elsewhere.
    - **Vercel Cron:** add `{ "crons": [{ "path": "/api/ingest", "schedule": "*/15 * * * *" }] }` to `vercel.json`. Vercel sends `CRON_SECRET` automatically. Sub-daily schedules need a Pro plan.
    - **Anything else:** `curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://your-site/api/ingest`.
 
