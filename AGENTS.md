@@ -18,3 +18,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - News ingestion lives in `src/lib/ingest` (parse → normalize → store, plus trends) and runs from `src/app/api/ingest/route.ts` with the service-role client in `src/lib/supabase/admin.ts`. Keep ingestion logic free of Supabase imports so it stays testable; only `supabase-store.ts` talks to the database.
 - Run `npm test` after changing `src/lib/ingest`. Feed fixtures are in `src/lib/ingest/__fixtures__`.
 - Never show invented numbers for real content: counts of 0 are hidden in the UI.
+- Reader activity (likes, reposts, bookmarks, follows, topics, settings) lives in the client stores in `src/lib/store`. They use localStorage in demo mode; otherwise they're filled by `ActivitySync` in the main layout and saved with `src/lib/actions/activity.ts`. Keep the defaults in `src/lib/settings.ts` in sync with `public.user_settings`.
+- Cached counts carry `countedAt`; show them through `useAdjustedCount` so the reader's own changes are neither missing nor counted twice.
+- Read the Supabase session only through `createClient()` in `src/lib/supabase/server.ts`. It calls `io()` first, because Supabase Auth reads the clock, which Next.js forbids while prerendering.

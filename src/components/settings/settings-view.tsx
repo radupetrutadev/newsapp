@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { SettingsRow, SettingsSection } from "./settings-primitives";
-import { resetEngagement } from "@/lib/store/engagement";
+import { resetEngagement, useEngagementStatus } from "@/lib/store/engagement";
 import { resetSettings, updateSetting, useSettings, type Settings } from "@/lib/store/settings";
 import { toast } from "@/lib/store/toast";
 
@@ -123,27 +123,47 @@ export function SettingsView() {
         />
       </SettingsSection>
 
-      <SettingsSection title="Data on this device">
-        <SettingsRow
-          icon={RotateCcw}
-          title="Reset preferences"
-          description="Restore default settings and clear likes, reposts, bookmarks and follows saved in this browser."
-          control={
-            <button
-              type="button"
-              onClick={() => {
-                if (!window.confirm("Reset all preferences on this device?")) return;
-                resetSettings();
-                resetEngagement();
-                toast("Preferences reset");
-              }}
-              className="h-8 shrink-0 rounded-full border border-[#67070f] px-4 text-sm font-bold text-live transition-colors hover:bg-live/10"
-            >
-              Reset
-            </button>
-          }
-        />
-      </SettingsSection>
+      <ResetSection />
     </>
+  );
+}
+
+function ResetSection() {
+  const status = useEngagementStatus();
+  // Signed-in readers' settings live on their account; likes and follows are kept.
+  const onAccount = status === "ready";
+  const demo = status === "local";
+
+  return (
+    <SettingsSection title={onAccount ? "Your preferences" : "Data on this device"}>
+      <SettingsRow
+        icon={RotateCcw}
+        title={onAccount ? "Reset settings" : "Reset preferences"}
+        description={
+          onAccount
+            ? "Restore the default feed and notification settings on your account."
+            : demo
+              ? "Restore default settings and clear likes, reposts, bookmarks and follows saved in this browser."
+              : "Restore the default settings in this browser."
+        }
+        control={
+          <button
+            type="button"
+            onClick={() => {
+              const question = onAccount
+                ? "Reset your settings to the defaults?"
+                : "Reset all preferences on this device?";
+              if (!window.confirm(question)) return;
+              resetSettings();
+              if (demo) resetEngagement();
+              toast(onAccount ? "Settings reset" : "Preferences reset");
+            }}
+            className="h-8 shrink-0 rounded-full border border-[#67070f] px-4 text-sm font-bold text-live transition-colors hover:bg-live/10"
+          >
+            Reset
+          </button>
+        }
+      />
+    </SettingsSection>
   );
 }

@@ -47,9 +47,11 @@ export function createPersistentStore<T extends object>(key: string, defaults: T
     };
   }
 
+  const getServerSnapshot = () => defaults;
+
   function useStore(): T {
-    return useSyncExternalStore(subscribe, read, () => defaults);
+    return useSyncExternalStore(subscribe, read, getServerSnapshot);
   }
 
-  return { useStore, setState };
+  return { useStore, setState, subscribe, getSnapshot: read, getServerSnapshot };
 }

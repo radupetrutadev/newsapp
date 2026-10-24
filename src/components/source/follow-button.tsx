@@ -29,8 +29,8 @@ export function FollowButton({
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        toggle();
         setHovered(false);
+        if (!toggle()) return;
         toast(following ? `You unfollowed ${name}` : `You're now following ${name}`);
       }}
       onMouseEnter={() => setHovered(true)}

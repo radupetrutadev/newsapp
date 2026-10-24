@@ -11,6 +11,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { Cover } from "@/components/ui/cover";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getFeed, getSources } from "@/lib/data";
+import { getViewerArticles } from "@/lib/data/activity";
 import { getViewer } from "@/lib/data/viewer";
 import type { Article, Source } from "@/lib/types";
 import { formatCount, formatMonthYear } from "@/lib/utils";
@@ -28,7 +29,11 @@ export default async function ProfilePage() {
 }
 
 async function Profile({ articles, sources }: { articles: Article[]; sources: Source[] }) {
-  const viewer = await getViewer();
+  const [viewer, liked, reposted] = await Promise.all([
+    getViewer(),
+    getViewerArticles("liked"),
+    getViewerArticles("reposted"),
+  ]);
 
   if (!viewer) {
     return (
@@ -79,7 +84,11 @@ async function Profile({ articles, sources }: { articles: Article[]; sources: So
           </p>
         </div>
       ) : null}
-      <ProfileTabs articles={articles} sources={sources} />
+      {/* Liked and reposted stories from the account (null in demo mode) keep older ones listed. */}
+      <ProfileTabs
+        articles={[...(liked ?? []), ...(reposted ?? []), ...articles]}
+        sources={sources}
+      />
     </>
   );
 }

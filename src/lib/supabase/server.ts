@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { io } from "next/cache";
 import { cookies } from "next/headers";
 import { supabaseKey, supabaseUrl } from "./config";
 import type { Database } from "./database.types";
@@ -9,6 +10,10 @@ import type { Database } from "./database.types";
  * Use it for anything user-specific (auth, the viewer's profile, writes).
  */
 export async function createClient() {
+  // Supabase Auth reads the clock to check the session's expiry. Next.js
+  // doesn't allow that while prerendering (including prefetched App Shells),
+  // so io() defers it; during a request or Server Action it resolves at once.
+  await io();
   const cookieStore = await cookies();
 
   return createServerClient<Database>(supabaseUrl, supabaseKey, {

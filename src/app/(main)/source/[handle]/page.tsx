@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { iconButton, PageHeader } from "@/components/layout/page-header";
 import { FollowButton } from "@/components/source/follow-button";
+import { FollowerCount } from "@/components/source/follower-count";
 import { ProfileHeader } from "@/components/source/profile-header";
 import { ProfileSkeleton } from "@/components/source/profile-skeleton";
 import { SourceArticles } from "@/components/source/source-articles";
@@ -13,7 +14,7 @@ import { Cover } from "@/components/ui/cover";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { getCategory } from "@/lib/categories";
 import { getArticlesBySource, getSource, getSourceHandles } from "@/lib/data";
-import { cn, formatCount, formatMonthYear, hostname } from "@/lib/utils";
+import { cn, formatMonthYear, hostname } from "@/lib/utils";
 
 export async function generateStaticParams() {
   return (await getSourceHandles()).map((handle) => ({ handle }));
@@ -107,7 +108,7 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
             : []),
           { icon: CalendarDays, content: `Joined ${formatMonthYear(source.joinedAt)}` },
         ]}
-        stats={[{ label: "Followers", value: formatCount(source.followersCount) }]}
+        stats={[{ label: "Followers", value: <FollowerCount source={source} /> }]}
       />
 
       <SourceArticles articles={articles} name={source.name} />
