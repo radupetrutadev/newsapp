@@ -13,7 +13,7 @@ import { Cover } from "@/components/ui/cover";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { getCategory } from "@/lib/categories";
 import { getArticlesBySource, getSource, getSourceHandles } from "@/lib/data";
-import { cn, formatCount, formatMonthYear, hashString, hostname } from "@/lib/utils";
+import { cn, formatCount, formatMonthYear, hostname } from "@/lib/utils";
 
 export async function generateStaticParams() {
   return (await getSourceHandles()).map((handle) => ({ handle }));
@@ -107,10 +107,7 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
             : []),
           { icon: CalendarDays, content: `Joined ${formatMonthYear(source.joinedAt)}` },
         ]}
-        stats={[
-          { label: "Following", value: String(40 + (hashString(source.id) % 300)) },
-          { label: "Followers", value: formatCount(source.followersCount) },
-        ]}
+        stats={[{ label: "Followers", value: formatCount(source.followersCount) }]}
       />
 
       <SourceArticles articles={articles} name={source.name} />

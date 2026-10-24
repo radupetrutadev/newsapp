@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel rdf:about="https://science.example.net/">
+    <title>Example Science</title>
+    <link>https://science.example.net/</link>
+  </channel>
+  <item rdf:about="https://science.example.net/2026/10/comet">
+    <title>Comet will be visible to the naked eye</title>
+    <link>https://science.example.net/2026/10/comet</link>
+    <description>Look east before dawn.</description>
+    <dc:date>2026-10-19T05:00:00Z</dc:date>
+    <dc:subject>Astronomy</dc:subject>
+  </item>
+</rdf:RDF>

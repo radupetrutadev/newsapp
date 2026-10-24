@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel>
+    <title>Technology | Example Daily</title>
+    <link>https://daily.example.com/technology</link>
+    <item>
+      <title>EU lawmakers back new rules for AI chatbots</title>
+      <link>https://daily.example.com/technology/2026/oct/19/eu-ai-rules?utm_source=rss&amp;utm_medium=feed</link>
+      <description>&lt;p&gt;The European parliament voted 412 to 98 for the package, which will require chatbots to disclose that they are not human &amp;amp; label generated images.&lt;/p&gt; &lt;a href="https://daily.example.com/technology/2026/oct/19/eu-ai-rules"&gt;Continue reading...&lt;/a&gt;</description>
+      <category domain="https://daily.example.com/technology/artificialintelligenceai">Artificial intelligence (AI)</category>
+      <category domain="https://daily.example.com/technology/technology">Technology</category>
+      <category domain="https://daily.example.com/world/eu">European Union</category>
+      <dc:creator>A Reporter</dc:creator>
+      <dc:date>2026-10-19T07:30:00Z</dc:date>
+      <media:content width="140" url="https://img.example.com/140/eu.jpg"><media:credit scheme="urn:ebu">Photograph: Agency</media:credit></media:content>
+      <media:content width="460" url="https://img.example.com/460/eu.jpg"><media:credit scheme="urn:ebu">Photograph: Agency</media:credit></media:content>
+    </item>
+    <item>
+      <title>Chipmaker shares jump as Gaza ceasefire calms markets</title>
+      <link>https://daily.example.com/business/2026/oct/19/chip-shares</link>
+      <description>&lt;p&gt;Investors returned to technology stocks.&lt;/p&gt;</description>
+      <category>Semiconductors</category>
+      <dc:date>2026-10-19T06:00:00Z</dc:date>
+      <media:content medium="video" url="https://img.example.com/clip.mp4"/>
+    </item>
+  </channel>
+</rss>

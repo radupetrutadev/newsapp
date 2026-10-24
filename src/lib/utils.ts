@@ -13,6 +13,11 @@ export function formatCount(value: number): string {
   return `${compact(value / 1_000_000_000)}B`;
 }
 
+/** "1 story", "12 stories", "1.2K stories". */
+export function storyCount(value: number): string {
+  return `${formatCount(value)} ${value === 1 ? "story" : "stories"}`;
+}
+
 function compact(value: number): string {
   if (value >= 100) return String(Math.floor(value));
   return String(Math.floor(value * 10) / 10);

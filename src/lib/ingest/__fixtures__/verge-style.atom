@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en-US">
+  <title type="text">Example Gadgets</title>
+  <id>https://gadgets.example.com/rss/index.xml</id>
+  <link type="text/html" rel="alternate" href="https://gadgets.example.com/"/>
+  <updated>2026-10-19T10:00:00-04:00</updated>
+  <entry>
+    <published>2026-10-19T08:00:00-04:00</published>
+    <updated>2026-10-19T09:00:00-04:00</updated>
+    <title type="html">Open-source model tops coding benchmark &amp;#8212; again</title>
+    <content type="html">&lt;figure&gt;&lt;img alt="" src="https://cdn.example.com/hero.jpg?w=1200&amp;amp;q=80" /&gt;&lt;figcaption&gt;Photo credit&lt;/figcaption&gt;&lt;/figure&gt;&lt;p&gt;The model was released on Monday.&lt;/p&gt;</content>
+    <link rel="replies" type="text/html" href="https://gadgets.example.com/2026/10/19/model#comments"/>
+    <link rel="alternate" type="text/html" href="https://gadgets.example.com/2026/10/19/model"/>
+    <id>https://gadgets.example.com/2026/10/19/model</id>
+    <author><name>Writer</name></author>
+    <category scheme="https://gadgets.example.com" term="AI" label="AI"/>
+    <category scheme="https://gadgets.example.com" term="News"/>
+  </entry>
+  <entry>
+    <updated>2026-10-19T07:00:00Z</updated>
+    <title>Phone review: two days of battery</title>
+    <summary type="html">&lt;p&gt;Short &lt;b&gt;summary&lt;/b&gt; here.&lt;/p&gt;</summary>
+    <link href="/2026/10/19/phone-review"/>
+    <id>tag:gadgets.example.com,2026:phone</id>
+  </entry>
+</feed>

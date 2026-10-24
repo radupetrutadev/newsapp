@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SourceRow } from "@/components/source/source-row";
 import { getSources, getTrends } from "@/lib/data";
 import { site } from "@/lib/site";
-import { formatCount } from "@/lib/utils";
+import { storyCount } from "@/lib/utils";
 import { SidebarSearch } from "./sidebar-search";
 
 export async function RightSidebar() {
@@ -27,7 +27,7 @@ export async function RightSidebar() {
               {trend.context}
             </p>
             <p className="text-[15px] font-bold">{trend.topic}</p>
-            <p className="text-[13px] text-muted">{formatCount(trend.postsCount)} posts</p>
+            <p className="text-[13px] text-muted">{storyCount(trend.postsCount)}</p>
           </Link>
         ))}
         <Link

@@ -51,14 +51,14 @@ export const mockComments: MockComment[] = [
 ];
 
 export const mockTrends: Trend[] = [
-  { id: "t-1", context: "Climate · Live", topic: "Methane Deal", postsCount: 182_000, category: "climate" },
-  { id: "t-2", context: "Technology · Trending", topic: "#OpenSourceAI", postsCount: 96_400, category: "tech" },
-  { id: "t-3", context: "Sports · Trending", topic: "Overtime Thriller", postsCount: 241_000, category: "sports" },
-  { id: "t-4", context: "Business · Trending", topic: "Rate Cuts", postsCount: 48_900, category: "business" },
-  { id: "t-5", context: "Entertainment · Trending", topic: "#SurpriseDrop", postsCount: 512_000, category: "entertainment" },
-  { id: "t-6", context: "Science · Trending", topic: "Water Ice", postsCount: 37_200, category: "science" },
-  { id: "t-7", context: "Politics · Trending", topic: "Privacy Bill", postsCount: 29_800, category: "politics" },
-  { id: "t-8", context: "Trending in World", topic: "High-Speed Rail", postsCount: 21_500, category: "world" },
+  { id: "t-1", context: "Climate · Live", topic: "Methane Deal", postsCount: 14, category: "climate" },
+  { id: "t-2", context: "Technology · Trending", topic: "#OpenSourceAI", postsCount: 11, category: "tech" },
+  { id: "t-3", context: "Sports · Trending", topic: "Overtime Thriller", postsCount: 9, category: "sports" },
+  { id: "t-4", context: "Business · Trending", topic: "Rate Cuts", postsCount: 8, category: "business" },
+  { id: "t-5", context: "Entertainment · Trending", topic: "#SurpriseDrop", postsCount: 7, category: "entertainment" },
+  { id: "t-6", context: "Science · Trending", topic: "Water Ice", postsCount: 6, category: "science" },
+  { id: "t-7", context: "Politics · Trending", topic: "Privacy Bill", postsCount: 5, category: "politics" },
+  { id: "t-8", context: "Trending in World", topic: "High-Speed Rail", postsCount: 4, category: "world" },
 ];
 
 export type MockNotification = Omit<AppNotification, "createdAt"> & { minutesAgo: number };
