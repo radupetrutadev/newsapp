@@ -6,23 +6,26 @@
 -- (notifications_page), keeps the unread badge live, sends them as browser
 -- push notifications (claim_push_notifications) and mails a weekly digest
 -- (claim_digest_recipients).
+--
+-- Safe to run more than once: a run that stopped partway can simply be
+-- run again.
 
 -- ---------------------------------------------------------------------------
 -- Replies to comments, comment likes and following people
 
 alter table public.comments
-  add column parent_id uuid references public.comments (id) on delete set null;
+  add column if not exists parent_id uuid references public.comments (id) on delete set null;
 
-create table public.comment_likes (
+create table if not exists public.comment_likes (
   user_id uuid not null references public.profiles (id) on delete cascade,
   comment_id uuid not null references public.comments (id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, comment_id)
 );
 
-create index comment_likes_comment_idx on public.comment_likes (comment_id, created_at desc);
+create index if not exists comment_likes_comment_idx on public.comment_likes (comment_id, created_at desc);
 
-create table public.user_follows (
+create table if not exists public.user_follows (
   follower_id uuid not null references public.profiles (id) on delete cascade,
   followee_id uuid not null references public.profiles (id) on delete cascade,
   created_at timestamptz not null default now(),
@@ -30,9 +33,9 @@ create table public.user_follows (
   check (follower_id <> followee_id)
 );
 
-create index user_follows_followee_idx on public.user_follows (followee_id, created_at desc);
+create index if not exists user_follows_followee_idx on public.user_follows (followee_id, created_at desc);
 
-alter table public.profiles add column followers_count integer not null default 0;
+alter table public.profiles add column if not exists followers_count integer not null default 0;
 
 -- Readers write only these columns, so counts and badges stay with the
 -- triggers. (Before this, a reader could also set their own `verified` flag.)
@@ -43,7 +46,7 @@ revoke insert, update on public.comments from anon, authenticated;
 grant insert (article_id, user_id, body, parent_id) on public.comments to authenticated;
 
 -- A reply answers a comment on the same story.
-create function public.check_comment_parent()
+create or replace function public.check_comment_parent()
 returns trigger
 language plpgsql
 set search_path = ''
@@ -58,6 +61,7 @@ begin
 end;
 $$;
 
+drop trigger if exists comments_check_parent on public.comments;
 create trigger comments_check_parent
   before insert on public.comments
   for each row execute function public.check_comment_parent();
@@ -78,7 +82,7 @@ create trigger comments_check_parent
 -- the row's created_at and read_at, so the count is exact and an unlike or
 -- unfollow takes the person out again.
 
-create table public.notifications (
+create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles (id) on delete cascade,
   kind text not null check (kind in ('reply', 'mention', 'like', 'follow', 'breaking')),
@@ -93,14 +97,14 @@ create table public.notifications (
   pushed_at timestamptz
 );
 
-create index notifications_user_idx on public.notifications (user_id, updated_at desc, id desc);
-create index notifications_unread_idx on public.notifications (user_id) where read_at is null;
-create unique index notifications_group_idx on public.notifications (user_id, group_key) where read_at is null;
-create index notifications_unpushed_idx on public.notifications (updated_at) where pushed_at is null;
+create index if not exists notifications_user_idx on public.notifications (user_id, updated_at desc, id desc);
+create index if not exists notifications_unread_idx on public.notifications (user_id) where read_at is null;
+create unique index if not exists notifications_group_idx on public.notifications (user_id, group_key) where read_at is null;
+create index if not exists notifications_unpushed_idx on public.notifications (updated_at) where pushed_at is null;
 
 -- Settings rows exist once a reader changes something; until then the
 -- defaults (on) apply. Likes and follows have no setting.
-create function public.wants_notification(recipient uuid, kind text)
+create or replace function public.wants_notification(recipient uuid, kind text)
 returns boolean
 language sql
 stable
@@ -122,7 +126,7 @@ as $$
 $$;
 
 -- Adds someone to a reader's unread like or follow row, creating it if needed.
-create function public.notify_group(recipient uuid, kind text, group_key text, comment_id uuid, article_id uuid)
+create or replace function public.notify_group(recipient uuid, kind text, group_key text, comment_id uuid, article_id uuid)
 returns void
 language sql
 security definer
@@ -135,7 +139,7 @@ as $$
 $$;
 
 -- Replies and @mentions.
-create function public.notify_comment()
+create or replace function public.notify_comment()
 returns trigger
 language plpgsql
 security definer
@@ -168,12 +172,13 @@ begin
 end;
 $$;
 
+drop trigger if exists comments_notify on public.comments;
 create trigger comments_notify
   after insert on public.comments
   for each row execute function public.notify_comment();
 
 -- Keeps comments.likes_count in sync and tells the comment's author.
-create function public.on_comment_like()
+create or replace function public.on_comment_like()
 returns trigger
 language plpgsql
 security definer
@@ -209,12 +214,13 @@ begin
 end;
 $$;
 
+drop trigger if exists comment_likes_sync on public.comment_likes;
 create trigger comment_likes_sync
   after insert or delete on public.comment_likes
   for each row execute function public.on_comment_like();
 
 -- Keeps profiles.followers_count in sync and tells the person followed.
-create function public.on_user_follow()
+create or replace function public.on_user_follow()
 returns trigger
 language plpgsql
 security definer
@@ -239,13 +245,14 @@ begin
 end;
 $$;
 
+drop trigger if exists user_follows_sync on public.user_follows;
 create trigger user_follows_sync
   after insert or delete on public.user_follows
   for each row execute function public.on_user_follow();
 
 -- Breaking stories, for everyone who follows the source or the topic. Older
 -- stories (a feed catching up) don't alert anyone.
-create function public.notify_breaking()
+create or replace function public.notify_breaking()
 returns trigger
 language plpgsql
 security definer
@@ -264,6 +271,7 @@ begin
 end;
 $$;
 
+drop trigger if exists articles_notify_breaking on public.articles;
 create trigger articles_notify_breaking
   after insert on public.articles
   for each row
@@ -275,7 +283,7 @@ create trigger articles_notify_breaking
 
 -- One row as the app shows it: who (the newest three, and how many), the
 -- comment and story it is about, and for breaking news the source.
-create function public.notification_json(n public.notifications)
+create or replace function public.notification_json(n public.notifications)
 returns jsonb
 language sql
 stable
@@ -335,7 +343,7 @@ $$;
 
 -- The signed-in reader's notifications, newest activity first, one page at a
 -- time. `filter` is 'all', 'breaking' or 'mentions' (replies and mentions).
-create function public.notifications_page(
+create or replace function public.notifications_page(
   page_size integer,
   filter text default 'all',
   before_at timestamptz default null,
@@ -374,7 +382,7 @@ $$;
 
 -- Marks what the reader has seen as read: everything last updated by `up_to`
 -- (the newest item they were shown). Anything newer stays unread.
-create function public.mark_notifications_read(up_to timestamptz)
+create or replace function public.mark_notifications_read(up_to timestamptz)
 returns void
 language sql
 security definer
@@ -388,7 +396,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Browser push: one row per browser that turned push on.
 
-create table public.push_subscriptions (
+create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles (id) on delete cascade,
   endpoint text not null unique check (endpoint ~ '^https://' and length(endpoint) <= 2048),
@@ -397,11 +405,11 @@ create table public.push_subscriptions (
   created_at timestamptz not null default now()
 );
 
-create index push_subscriptions_user_idx on public.push_subscriptions (user_id, created_at desc);
+create index if not exists push_subscriptions_user_idx on public.push_subscriptions (user_id, created_at desc);
 
 -- Saves this browser for the signed-in reader. A browser belongs to whoever
 -- signed in on it last, and each reader keeps their ten newest browsers.
-create function public.save_push_subscription(endpoint text, p256dh text, auth_key text)
+create or replace function public.save_push_subscription(endpoint text, p256dh text, auth_key text)
 returns void
 language plpgsql
 security definer
@@ -430,7 +438,7 @@ $$;
 -- For the push sender (service role): marks every notification not yet
 -- handed over as handed over, and returns those worth sending now, with the
 -- reader's id. Readers without push, and anything over an hour old, are skipped.
-create function public.claim_push_notifications(max_count integer default 100)
+create or replace function public.claim_push_notifications(max_count integer default 100)
 returns jsonb
 language plpgsql
 security definer
@@ -467,7 +475,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Weekly email digest: which readers have been sent which week's email.
 
-create table public.email_digests (
+create table if not exists public.email_digests (
   user_id uuid not null references public.profiles (id) on delete cascade,
   week date not null,
   sent_at timestamptz not null default now(),
@@ -477,7 +485,7 @@ create table public.email_digests (
 -- For the digest sender (service role): claims up to `max_count` readers with
 -- the digest on who haven't been claimed for `digest_week`, and returns their
 -- email addresses. A failed send deletes its claims so a retry picks them up.
-create function public.claim_digest_recipients(digest_week date, max_count integer default 100)
+create or replace function public.claim_digest_recipients(digest_week date, max_count integer default 100)
 returns table (user_id uuid, email text, display_name text)
 language sql
 security definer
@@ -516,28 +524,37 @@ alter table public.push_subscriptions enable row level security;
 -- Service role only: no policies.
 alter table public.email_digests enable row level security;
 
+drop policy if exists "Users read their own comment likes" on public.comment_likes;
 create policy "Users read their own comment likes" on public.comment_likes
   for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists "Users like comments as themselves" on public.comment_likes;
 create policy "Users like comments as themselves" on public.comment_likes
   for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists "Users remove their own comment likes" on public.comment_likes;
 create policy "Users remove their own comment likes" on public.comment_likes
   for delete to authenticated using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users read who they follow" on public.user_follows;
 create policy "Users read who they follow" on public.user_follows
   for select to authenticated using ((select auth.uid()) = follower_id);
+drop policy if exists "Users follow people as themselves" on public.user_follows;
 create policy "Users follow people as themselves" on public.user_follows
   for insert to authenticated with check ((select auth.uid()) = follower_id);
+drop policy if exists "Users unfollow people as themselves" on public.user_follows;
 create policy "Users unfollow people as themselves" on public.user_follows
   for delete to authenticated using ((select auth.uid()) = follower_id);
 
 -- Read-only: rows come from the triggers and are marked read with
 -- mark_notifications_read.
+drop policy if exists "Users read their own notifications" on public.notifications;
 create policy "Users read their own notifications" on public.notifications
   for select to authenticated using ((select auth.uid()) = user_id);
 
 -- Saved with save_push_subscription.
+drop policy if exists "Users read their own push subscriptions" on public.push_subscriptions;
 create policy "Users read their own push subscriptions" on public.push_subscriptions
   for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists "Users remove their own push subscriptions" on public.push_subscriptions;
 create policy "Users remove their own push subscriptions" on public.push_subscriptions
   for delete to authenticated using ((select auth.uid()) = user_id);
 

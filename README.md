@@ -50,7 +50,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
    - `supabase/migrations/20261019000000_feeds.sql` — the `feeds` table, one row per story URL, and the function that refreshes trends.
    - `supabase/migrations/20261024000000_activity.sql` — reposts, followed topics and settings tables, triggers that keep like, repost and follower counts in sync, and the story view counter.
    - `supabase/migrations/20261026000000_feeds_search.sql` — paging indexes, full-text search, and the functions behind "For you", "Following" and search results. See [Feeds and search](#feeds-and-search).
-   - `supabase/migrations/20261027000000_notifications.sql` — replies to comments, comment likes, following people, notifications and the triggers that create them, push subscriptions and digest records. See [Notifications](#notifications).
+   - `supabase/migrations/20261027000000_notifications.sql` — replies to comments, comment likes, following people, notifications and the triggers that create them, push subscriptions and digest records. See [Notifications](#notifications). Safe to run again if a run stopped partway.
 
    Run each new migration **before** deploying the code that needs it. The build prerenders pages that read the database, so a build against a database without the migration fails; on Vercel the live site keeps running the previous deploy until a build succeeds.
 3. Load content — pick one:
