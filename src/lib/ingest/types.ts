@@ -1,5 +1,6 @@
 import type { Database } from "@/lib/supabase/database.types";
 import type { CategorySlug } from "@/lib/types";
+import type { ClusterAssignment, ClusterInput } from "./cluster";
 
 /** A feed to poll, as stored in the `feeds` table. */
 export interface FeedConfig {
@@ -39,6 +40,10 @@ export interface IngestStore {
   expireBreaking(before: string): Promise<void>;
   recentArticles(since: string): Promise<TrendInput[]>;
   replaceTrends(rows: TrendRow[]): Promise<void>;
+  /** Stories published since `since` (ISO date), with their cluster if they have one. */
+  clusterCandidates(since: string): Promise<ClusterInput[]>;
+  /** Saves new clusters and stories joining clusters. Returns how many stories moved. */
+  saveClusters(assignments: ClusterAssignment[]): Promise<number>;
 }
 
 export interface FeedResult {
@@ -56,5 +61,8 @@ export interface IngestReport {
   finishedAt: string;
   feeds: FeedResult[];
   added: number;
+  /** Stories put in a cluster with others about the same event. */
+  clustered: number;
+  clusterError?: string;
   trends: number;
 }

@@ -1,3 +1,4 @@
+import { assignClusters } from "./cluster";
 import { normalizeItem } from "./normalize";
 import { parseFeed } from "./parse";
 import { computeTrends } from "./trends";
@@ -9,6 +10,8 @@ const FETCH_TIMEOUT_MS = 15_000;
 /** Breaking flags expire so the Live banner never shows an old story. */
 const BREAKING_HOURS = 6;
 const TRENDS_WINDOW_HOURS = 24;
+/** Feeds only offer stories up to three days old (see normalize.ts). */
+const CLUSTER_WINDOW_HOURS = 72;
 
 export interface IngestOptions {
   fetch?: typeof fetch;
@@ -18,8 +21,9 @@ export interface IngestOptions {
 }
 
 /**
- * Polls every active feed, stores new stories, then refreshes trends.
- * One failing feed never stops the run; its error is saved on the feed row.
+ * Polls every active feed, stores new stories, clusters stories about the
+ * same event, then refreshes trends. One failing feed never stops the run;
+ * its error is saved on the feed row.
  */
 export async function runIngest(store: IngestStore, options: IngestOptions = {}): Promise<IngestReport> {
   const fetchImpl = options.fetch ?? fetch;
@@ -33,6 +37,17 @@ export async function runIngest(store: IngestStore, options: IngestOptions = {})
 
   await store.expireBreaking(hoursBefore(now, BREAKING_HOURS));
 
+  // New stories can join an event already covered, or pair up with one that had no match yet.
+  let clustered = 0;
+  let clusterError: string | undefined;
+  try {
+    const assignments = assignClusters(await store.clusterCandidates(hoursBefore(now, CLUSTER_WINDOW_HOURS)));
+    if (assignments.length > 0) clustered = await store.saveClusters(assignments);
+  } catch (cause) {
+    // The stories are stored either way; the next run tries again.
+    clusterError = describeError(cause);
+  }
+
   const recent = await store.recentArticles(hoursBefore(now, TRENDS_WINDOW_HOURS));
   const trends = computeTrends(recent);
   // Keep the previous list rather than blanking it when nothing is recent.
@@ -43,6 +58,8 @@ export async function runIngest(store: IngestStore, options: IngestOptions = {})
     finishedAt: new Date().toISOString(),
     feeds: results,
     added: results.reduce((total, result) => total + result.added, 0),
+    clustered,
+    ...(clusterError ? { clusterError } : {}),
     trends: trends.length,
   };
 }

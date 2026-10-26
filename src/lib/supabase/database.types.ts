@@ -63,6 +63,8 @@ export type Database = {
           views_count: number;
           published_at: string;
           created_at: string;
+          /** The stories other publishers wrote about the same event, if any (see story_clusters). */
+          cluster_id: string | null;
           /** Generated from the headline, tags, summary and topic for full-text search. */
           search_vector: unknown;
         };
@@ -87,6 +89,7 @@ export type Database = {
           views_count?: number;
           published_at?: string;
           created_at?: string;
+          cluster_id?: string | null;
           search_vector?: never;
         };
         Update: Partial<Database["public"]["Tables"]["articles"]["Insert"]>;
@@ -98,7 +101,35 @@ export type Database = {
             referencedRelation: "sources";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "articles_cluster_id_fkey";
+            columns: ["cluster_id"];
+            isOneToOne: false;
+            referencedRelation: "story_clusters";
+            referencedColumns: ["id"];
+          },
         ];
+      };
+      /** Stories about the same event. Counts are kept by triggers; ingestion assigns stories. */
+      story_clusters: {
+        Row: {
+          id: string;
+          articles_count: number;
+          sources_count: number;
+          first_published_at: string | null;
+          last_published_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          articles_count?: number;
+          sources_count?: number;
+          first_published_at?: string | null;
+          last_published_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["story_clusters"]["Insert"]>;
+        Relationships: [];
       };
       profiles: {
         Row: {
@@ -408,6 +439,11 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      // Service role only. Returns how many stories moved.
+      assign_story_clusters: {
+        Args: { assignments: Json };
+        Returns: number;
+      };
       replace_trends: {
         Args: { items: Json };
         Returns: undefined;
@@ -416,7 +452,7 @@ export type Database = {
         Args: { article_id: string };
         Returns: undefined;
       };
-      // The feed functions return a JSON array of articles rows with "source" embedded.
+      // The feed functions return a JSON array of articles rows with "source" and "cluster" embedded.
       for_you_feed: {
         Args: {
           as_of: string;

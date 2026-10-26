@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { isUuid } from "@/lib/activity";
 import { categoryName } from "@/lib/categories";
+import { onePerEvent } from "@/lib/coverage";
 import { isLiveFeed, type FeedPage, type FeedSpec } from "@/lib/feeds";
 import { storyRank } from "@/lib/ranking";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -324,11 +325,14 @@ async function demoPage(feed: FeedSpec, cursor: OffsetCursor | null, local: Loca
   let list: Article[];
   switch (feed.kind) {
     case "for-you": {
+      // Ranked, with only the best-ranked story of each event, like public.for_you_feed.
       const at = Date.parse(asOf);
-      list = inCategory(feed.category)
-        .map((article) => ({ article, rank: storyRank(article, at, local.topics) }))
-        .sort((a, b) => b.rank - a.rank)
-        .map(({ article }) => article);
+      list = onePerEvent(
+        inCategory(feed.category)
+          .map((article) => ({ article, rank: storyRank(article, at, local.topics) }))
+          .sort((a, b) => b.rank - a.rank)
+          .map(({ article }) => article),
+      );
       break;
     }
     case "following":

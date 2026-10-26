@@ -30,7 +30,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
 | Route | Page |
 | --- | --- |
 | `/` | **Feed** — ranked "For you" and "Following" tabs with infinite scroll, topic chips, live breaking banner |
-| `/article/[slug]` | Story — full article (and video), engagement stats, threaded replies, related stories |
+| `/article/[slug]` | Story — full article (and video), engagement stats, full coverage from other publishers, threaded replies, related stories |
 | `/explore` | Search, most-read hero, top stories carousel, trends, topics, sources |
 | `/search?q=` | Search results for stories and sources |
 | `/notifications` | Replies, mentions, likes, new followers and breaking news: All / Breaking / Mentions |
@@ -56,6 +56,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
    - `supabase/migrations/20261026000000_feeds_search.sql` — paging indexes, full-text search, and the functions behind "For you", "Following" and search results. See [Feeds and search](#feeds-and-search).
    - `supabase/migrations/20261027000000_notifications.sql` — replies to comments, comment likes, following people, notifications and the triggers that create them, push subscriptions and digest records. See [Notifications](#notifications). Safe to run again if a run stopped partway.
    - `supabase/migrations/20261028000000_accounts_community.sql` — profile limits and the `avatars` storage bucket, reply threads, deleting and reporting replies, spam limits, account deletion clean-up, and video and sensitive-content columns on stories. See [Accounts and community](#accounts-and-community). Safe to run again if a run stopped partway.
+   - `supabase/migrations/20261029000000_story_clusters.sql` — story clusters for "Full coverage", the function ingestion saves them with, and "For you" showing each event once. See [Full coverage](#full-coverage). Safe to run again.
 
    Run each new migration **before** deploying the code that needs it. The build prerenders pages that read the database, so a build against a database without the migration fails; on Vercel the live site keeps running the previous deploy until a build succeeds.
 3. Load content — pick one:
@@ -85,11 +86,21 @@ Restart `npm run dev` after changing env vars.
 
 Feeds load 20 stories at a time. The server renders the first page; more load from `/api/feed` as the reader scrolls (`src/lib/data/feeds.ts`, `src/components/feed/feed-list.tsx`). This covers the home feed, topic and source pages, and search results.
 
-- **For you:** the newest 1,000 stories, ranked in the database. Newer stories rank higher. Likes, reposts, replies and reads lift a story, with diminishing returns. Stories in topics the reader follows count double. Later pages are ranked as of when the first one loaded, so new stories don't push others around while the reader scrolls. Readers who follow the same topics share cached pages.
+- **For you:** the newest 1,000 stories, ranked in the database, with one story per event (see [Full coverage](#full-coverage)). Newer stories rank higher. Likes, reposts, replies and reads lift a story, with diminishing returns, and so does coverage by more publishers. Stories in topics the reader follows count double. Later pages are ranked as of when the first one loaded, so new stories don't push others around while the reader scrolls. Readers who follow the same topics share cached pages.
 - **Following:** stories from the sources the reader follows, newest first, read from their `follows` rows in one query. Signed-out readers are asked to follow sources.
 - **Search:** Postgres full-text search over the headline, tags, summary and topic, with English word forms ("deals" finds "deal"). Every word must match. Words of four letters or more also match longer words ("clim" finds "climate"). Headline matches count most, and newer stories rank higher. Sources are matched by name, handle and description.
 - **Paging:** newest-first lists continue after the last story shown, so a page never repeats or skips a story, even when new ones arrive. Ranked lists stop after 2,000 stories.
 - **Demo mode:** the same feeds over the mock stories, with the same ranking (`src/lib/ranking.ts`). Follows stay in the browser and are sent with each request.
+
+### Full coverage
+
+When several publishers report the same event, their stories form a cluster. Feed cards link to it ("Full coverage · 4 sources"), the story page lists every publisher's story about the event as a timeline, and "For you" shows only the best-ranked story of each event. Topic, source and search lists keep every story.
+
+- **How stories are matched** (`src/lib/ingest/cluster.ts`): by their distinctive words, without AI. Each story becomes a TF-IDF vector of its headline and tags (counted twice) and summary, with names and figures counting double, so "Miyagi" and "7.1" matter and "says" doesn't. A story joins the cluster it's most similar to (cosine similarity of at least 0.275) if that cluster has stories within 36 hours of it. Otherwise it waits on its own until another story about the event arrives.
+- **When:** every ingestion run, over the last 3 days of stories. Stories already in a cluster stay there, so links keep working.
+- **How well:** on the hand-labeled stories in `src/lib/ingest/__fixtures__/clusters.ts` (10 events told by 2–4 outlets each, plus look-alikes such as the Fed and the ECB both holding rates), it never joins stories about different events, and it finds 96% of the pairs that belong together. Wrong merges start at a threshold of 0.225. `cluster.test.ts` checks these numbers; rerun it after changing the weights or the threshold.
+- **Limits:** stories that describe an event in entirely different words, with no shared names or figures, are missed. Two clusters that turn out to be about the same event aren't merged.
+- **Demo mode** clusters the mock stories with the same code, and `supabase/seed.sql` stores the same clusters.
 
 ## Accounts and community
 
@@ -185,12 +196,13 @@ Every email has an unsubscribe link, which asks for confirmation first, and a on
 
 ## News ingestion
 
-Real stories come from publishers' public RSS and Atom feeds. `/api/ingest` polls every active feed in the `feeds` table, stores new stories and refreshes "What's happening".
+Real stories come from publishers' public RSS and Atom feeds. `/api/ingest` polls every active feed in the `feeds` table, stores new stories, groups stories about the same event and refreshes "What's happening".
 
 - **What's stored:** the headline, a short summary, an image and the link. The story page sends readers to the publisher for the full article. Check each publisher's RSS terms before using their feeds commercially.
 - **Duplicates:** each story is stored once per URL, after removing tracking parameters such as `utm_*`. Unchanged feeds cost a single "304 Not Modified" response, thanks to ETag and Last-Modified headers.
 - **First run:** only the last 3 days of items are imported, at most 30 per feed per run.
 - **Breaking news:** headlines starting with "Breaking:" get the red Live banner. The flag clears after 6 hours.
+- **Full coverage:** new stories are matched with others about the same event from the last 3 days (see [Full coverage](#full-coverage)).
 - **Trends:** worked out from the last 24 hours of stories. Topics are publisher tags and names that appear in headlines, ranked by how many different sources cover them.
 - **Failures:** one broken feed never stops a run. Its error is saved in `feeds.last_error`.
 
@@ -270,7 +282,7 @@ src/
     ui/                Avatar, verified badge, generated cover art, tabs, switch, dialog, menu, …
   lib/
     data/              Data access: mock data or Supabase, same return types; paged feeds
-    ingest/            RSS/Atom parsing, cleanup, trend detection and the ingestion run
+    ingest/            RSS/Atom parsing, cleanup, story clustering, trend detection and the ingestion run
     push/              Browser push: VAPID config, the sender and the browser side
     digest/            Weekly digest email, run and Resend sender
     mock/              Mock sources, articles, comments, trends, notifications

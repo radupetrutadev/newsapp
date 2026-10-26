@@ -1,6 +1,6 @@
 import type { Article } from "../types";
 
-export type MockArticle = Omit<Article, "source" | "publishedAt" | "videoUrl" | "isSensitive"> & {
+export type MockArticle = Omit<Article, "source" | "publishedAt" | "videoUrl" | "isSensitive" | "coverage"> & {
   videoUrl?: string;
   isSensitive?: boolean;
   sourceId: string;
@@ -568,5 +568,127 @@ export const mockArticles: MockArticle[] = [
     isSensitive: true,
     readTimeMinutes: 3,
     stats: { comments: 188, reposts: 1_540, likes: 6_900, views: 520_000 },
+  },
+  // Other publishers' takes on stories above, so demo mode has "Full coverage".
+  {
+    id: "art-027",
+    slug: "methane-pledge-140-countries-40-percent",
+    sourceId: "src-greenline",
+    minutesAgo: 34,
+    title: "Methane pledge: 140 countries commit to a 40% cut by 2035",
+    summary:
+      "The climate summit's methane deal pairs the target with weekly satellite leak data and a $12 billion repair fund, which campaigners called the real breakthrough.",
+    body: [
+      "For years methane pledges were voluntary and hard to check. The deal struck at the climate summit changes both: the 40% target is binding, and a shared satellite network will publish leak data every week.",
+      "Campaigners singled out the $12 billion repair fund, which pays for fixing leaks in older gas pipelines in lower-income countries, as the part most likely to cut emissions quickly.",
+      "Methane warms the planet far faster than carbon dioxide over the first two decades after it is released, so cuts now slow warming within a generation.",
+    ],
+    imageUrl: null,
+    url: null,
+    category: "climate",
+    tags: ["MethaneDeal"],
+    isBreaking: false,
+    readTimeMinutes: 3,
+    stats: { comments: 212, reposts: 1_840, likes: 9_300, views: 410_000 },
+  },
+  {
+    id: "art-028",
+    slug: "methane-deal-gas-producers",
+    sourceId: "src-meridian",
+    minutesAgo: 75,
+    title: "What the climate summit's methane deal means for gas producers",
+    summary:
+      "Exporters will have to plug leaks spotted by the new satellite network, and the 40% methane target by 2035 leaves little room for delay.",
+    body: [
+      "Gas producers signed on to the methane deal reluctantly. Under its terms, leaks spotted by the summit's satellite network will be published each week, along with the facilities responsible.",
+      "Industry groups say most leaks can be fixed with existing equipment, and the repair fund will cover part of the cost in poorer countries. The harder part is meeting the 40% target by 2035 in fields that are decades old.",
+    ],
+    imageUrl: null,
+    url: null,
+    category: "world",
+    tags: ["ClimateSummit", "Energy"],
+    isBreaking: false,
+    readTimeMinutes: 4,
+    stats: { comments: 96, reposts: 640, likes: 3_100, views: 150_000 },
+  },
+  {
+    id: "art-029",
+    slug: "lawmakers-methane-rules-after-summit",
+    sourceId: "src-commons",
+    minutesAgo: 130,
+    title: "Lawmakers under pressure to write methane rules after the summit deal",
+    summary:
+      "The binding 40% methane cut agreed at the climate summit only works if national parliaments pass leak rules within 18 months.",
+    body: [
+      "The climate summit's methane deal is binding on paper, but enforcement is left to each country. Progress reports are due in 18 months, and campaigners are already counting the votes.",
+      "Several parliaments would need new laws to require companies to act on the weekly satellite leak data.",
+    ],
+    imageUrl: null,
+    url: null,
+    category: "politics",
+    tags: ["MethaneDeal", "Policy"],
+    isBreaking: false,
+    readTimeMinutes: 3,
+    stats: { comments: 74, reposts: 410, likes: 2_200, views: 98_000 },
+  },
+  {
+    id: "art-030",
+    slug: "open-source-ai-model-rattles-rivals",
+    sourceId: "src-ledger",
+    minutesAgo: 88,
+    title: "Open-source AI model that matches proprietary rivals puts pressure on paid plans",
+    summary:
+      "If an open-weights model really scores within a point of the best closed systems on reasoning benchmarks, investors ask, what are companies paying for?",
+    body: [
+      "Shares in several AI software companies slipped after a research collective released an open-source model that its authors say matches the top proprietary systems on math and coding benchmarks.",
+      "Analysts cautioned that independent testing is still under way and that businesses pay for support and reliability as much as raw scores.",
+    ],
+    imageUrl: null,
+    url: null,
+    category: "business",
+    tags: ["OpenSourceAI"],
+    isBreaking: false,
+    readTimeMinutes: 3,
+    stats: { comments: 120, reposts: 760, likes: 4_900, views: 230_000 },
+  },
+  {
+    id: "art-031",
+    slug: "auroras-far-south-solar-storm",
+    sourceId: "src-meridian",
+    minutesAgo: 100,
+    title: "Auroras seen unusually far south as the strongest solar storm in decades hits",
+    summary:
+      "Green and violet auroras appeared over cities that rarely see them after solar wind from the storm arrived hours ahead of forecasts.",
+    body: [
+      "Readers from as far south as the Mediterranean sent photos of auroras overnight as the strongest solar storm in two decades reached Earth.",
+      "Forecasters said the solar wind arrived hours earlier than expected. Another night of displays is possible.",
+    ],
+    imageUrl: null,
+    url: null,
+    category: "science",
+    tags: ["Aurora"],
+    isBreaking: false,
+    readTimeMinutes: 2,
+    stats: { comments: 58, reposts: 690, likes: 5_400, views: 240_000 },
+  },
+  {
+    id: "art-032",
+    slug: "eighth-seed-champions-buzzer-beater",
+    sourceId: "src-dispatch",
+    minutesAgo: 140,
+    title: "Eighth seed wins the championship on an overtime buzzer-beater",
+    summary:
+      "The underdogs came back from 18 points down in the deciding game, and a rookie's three at the overtime buzzer completed the comeback.",
+    body: [
+      "No eighth seed had won the finals in more than two decades. This one trailed by 18 points with nine minutes left in the deciding game before a 21-4 run forced overtime.",
+      "A rookie point guard hit the winning three as the overtime buzzer sounded.",
+    ],
+    imageUrl: null,
+    url: null,
+    category: "sports",
+    tags: ["Finals"],
+    isBreaking: false,
+    readTimeMinutes: 2,
+    stats: { comments: 140, reposts: 1_220, likes: 8_800, views: 380_000 },
   },
 ];

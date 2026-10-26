@@ -38,7 +38,7 @@ async function ingest(request: NextRequest) {
   });
 
   // Serve the current pages while fresh ones render in the background.
-  if (report.added > 0) revalidateTag("articles", "max");
+  if (report.added > 0 || report.clustered > 0) revalidateTag("articles", "max");
   revalidateTag("trends", "max");
 
   // Breaking stories just stored notify their followers; this also sends

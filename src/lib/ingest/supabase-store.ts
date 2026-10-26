@@ -4,6 +4,9 @@ import type { Json } from "@/lib/supabase/database.types";
 import type { CategorySlug } from "@/lib/types";
 import type { ArticleInsert, IngestStore } from "./types";
 
+/** More than a busy three days of stories; clustering compares each with the rest. */
+const MAX_CLUSTER_CANDIDATES = 3000;
+
 const UNIQUE_VIOLATION = "23505";
 
 export function createSupabaseIngestStore(): IngestStore {
@@ -83,6 +86,35 @@ export function createSupabaseIngestStore(): IngestStore {
     async replaceTrends(rows) {
       const { error } = await db.rpc("replace_trends", { items: rows as unknown as Json });
       if (error) throw new Error(`Failed to save trends: ${error.message}`);
+    },
+
+    async clusterCandidates(since) {
+      const { data, error } = await db
+        .from("articles")
+        .select("id, title, summary, tags, published_at, cluster_id")
+        .gte("published_at", since)
+        .order("published_at", { ascending: false })
+        .limit(MAX_CLUSTER_CANDIDATES);
+      if (error) throw new Error(`Failed to load stories to cluster: ${error.message}`);
+      return data.map((article) => ({
+        id: article.id,
+        title: article.title,
+        summary: article.summary,
+        tags: article.tags,
+        publishedAt: article.published_at,
+        clusterId: article.cluster_id,
+      }));
+    },
+
+    async saveClusters(assignments) {
+      const { data, error } = await db.rpc("assign_story_clusters", {
+        assignments: assignments.map(({ clusterId, articleIds }) => ({
+          cluster_id: clusterId,
+          article_ids: articleIds,
+        })),
+      });
+      if (error) throw new Error(`Failed to save clusters: ${error.message}`);
+      return data;
     },
   };
 }
