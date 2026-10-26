@@ -28,16 +28,18 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
 | Route | Page |
 | --- | --- |
 | `/` | **Feed** — ranked "For you" and "Following" tabs with infinite scroll, topic chips, live breaking banner |
-| `/article/[slug]` | Story — full article, engagement stats, replies, related stories |
+| `/article/[slug]` | Story — full article, engagement stats, replies (and replies to replies), related stories |
 | `/explore` | Search, most-read hero, top stories carousel, trends, topics, sources |
 | `/search?q=` | Search results for stories and sources |
-| `/notifications` | All / Breaking / Mentions |
+| `/notifications` | Replies, mentions, likes, new followers and breaking news: All / Breaking / Mentions |
 | `/bookmarks` | Saved stories |
 | `/topics`, `/topics/[slug]` | Follow topics; per-topic feed |
 | `/source/[handle]` | Publisher profile (banner, bio, follow, Latest / Top) |
-| `/profile` | Your profile — likes, reposts, sources you follow |
+| `/profile` | Your profile — likes, reposts, sources and people you follow |
+| `/user/[handle]` | A reader's page — follow them, see their replies |
 | `/settings` | Account, feed, notification and display preferences |
 | `/login`, `/signup` | Email/password and Google/GitHub sign-in via Supabase Auth |
+| `/unsubscribe` | Where the link in the weekly digest email goes |
 | `/about`, `/terms`, `/privacy` | Static pages (Terms and Privacy are placeholders) |
 
 ## Connecting Supabase
@@ -48,6 +50,9 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
    - `supabase/migrations/20261019000000_feeds.sql` — the `feeds` table, one row per story URL, and the function that refreshes trends.
    - `supabase/migrations/20261024000000_activity.sql` — reposts, followed topics and settings tables, triggers that keep like, repost and follower counts in sync, and the story view counter.
    - `supabase/migrations/20261026000000_feeds_search.sql` — paging indexes, full-text search, and the functions behind "For you", "Following" and search results. See [Feeds and search](#feeds-and-search).
+   - `supabase/migrations/20261027000000_notifications.sql` — replies to comments, comment likes, following people, notifications and the triggers that create them, push subscriptions and digest records. See [Notifications](#notifications).
+
+   Run each new migration **before** deploying the code that needs it. The build prerenders pages that read the database, so a build against a database without the migration fails; on Vercel the live site keeps running the previous deploy until a build succeeds.
 3. Load content — pick one:
    - **Real news:** run `supabase/feeds.sql` (12 publishers, 28 RSS feeds), then set up [news ingestion](#news-ingestion).
    - **Demo content:** run `supabase/seed.sql` for the fictional stories from demo mode. Don't mix it with real news in production.
@@ -60,7 +65,7 @@ Restart `npm run dev` after changing env vars.
 
 - **Reads:** feeds, search, articles, sources, trends and comments (`src/lib/data`). Public reads use a cookie-free client inside `"use cache"` functions, so pages are prerendered and revalidate every minute.
 - **Auth:** sign in, sign up, OAuth, sign out (`src/lib/actions/auth.ts`); the session is refreshed in `src/proxy.ts`.
-- **Writes:** replies (`src/lib/actions/comments.ts`); likes, reposts, bookmarks, followed sources and topics, settings and story views (`src/lib/actions/activity.ts`); stories and trends from news ingestion (`src/lib/ingest`).
+- **Writes:** replies (`src/lib/actions/comments.ts`); likes, reposts, bookmarks, comment likes, followed sources, topics and people, settings and story views (`src/lib/actions/activity.ts`); notifications read and push subscriptions (`src/lib/actions/notifications.ts`, `push.ts`); stories and trends from news ingestion (`src/lib/ingest`).
 
 ### Reader activity
 
@@ -68,7 +73,7 @@ Restart `npm run dev` after changing env vars.
 - Buttons update straight away and undo themselves, with a message, if saving fails. Signed-out readers are asked to sign in.
 - Like, repost and follower counts are kept up to date by database triggers. Pages are cached for about a minute, so the app adds the reader's own recent changes to cached counts until the cache catches up.
 - A story view is counted when its page opens, at most once per day per browser. Views aren't protected against someone deliberately calling the counter over and over.
-- In demo mode, all of this stays in the browser's `localStorage`, as before. Notifications are still mock-only.
+- In demo mode, all of this stays in the browser's `localStorage`, as before. Notifications come from `src/lib/mock` and count as read once you open Notifications.
 
 ### Feeds and search
 
@@ -79,6 +84,50 @@ Feeds load 20 stories at a time. The server renders the first page; more load fr
 - **Search:** Postgres full-text search over the headline, tags, summary and topic, with English word forms ("deals" finds "deal"). Every word must match. Words of four letters or more also match longer words ("clim" finds "climate"). Headline matches count most, and newer stories rank higher. Sources are matched by name, handle and description.
 - **Paging:** newest-first lists continue after the last story shown, so a page never repeats or skips a story, even when new ones arrive. Ranked lists stop after 2,000 stories.
 - **Demo mode:** the same feeds over the mock stories, with the same ranking (`src/lib/ranking.ts`). Follows stay in the browser and are sent with each request.
+
+## Notifications
+
+Database triggers create notifications (`supabase/migrations/20261027000000_notifications.sql`), so every way of writing a reply, like or follow notifies the same way:
+
+- **Replies:** someone replies to your comment. Reply to a comment with its reply button; the reply shows "Replying to @handle".
+- **Mentions:** someone writes `@yourhandle` in a comment.
+- **Likes:** people like your comment. Likes on one comment gather in one item ("Ava and 3 others liked your reply") until you've seen it. Unliking takes the person out again.
+- **Follows:** people follow you from your page at `/user/<handle>`. New followers gather the same way.
+- **Breaking news:** a source or topic you follow publishes a story whose headline starts with "Breaking:". Stories older than 6 hours (a feed catching up) don't alert anyone.
+
+Settings → Notifications decides what you get: **Replies and mentions** and **Breaking news alerts** turn those off entirely. Likes and follows have no setting. **Daily brief** isn't sent yet.
+
+**Live updates** poll rather than hold a connection open:
+
+- The unread badge checks `/api/notifications/unread` every 30 seconds while the tab is visible, as soon as you come back to the tab, and when a push arrives. Opening Notifications marks everything shown as read.
+- Feeds check `/api/feed/new` every minute while visible. When stories newer than the newest one shown are out, a "N new stories" button appears; it loads them fresh, skipping the minute-long cache.
+
+### Browser push notifications
+
+Readers turn push on per device in Settings → Notifications. The row only appears once the site is built with VAPID keys, so redeploy after adding them. Each notification is sent straight after the action that caused it, and each ingestion run sends any that are left (breaking news among them).
+
+1. Generate keys once: `npx web-push generate-vapid-keys`.
+2. Add to `.env.local` and your host's environment:
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — the public key (safe in the browser).
+   - `VAPID_PRIVATE_KEY` — the private key. Server-only: never prefix it with `NEXT_PUBLIC_`.
+   - `VAPID_SUBJECT` (optional) — `mailto:you@example.com` or your site's URL, which push services use to contact you. Defaults to `NEXT_PUBLIC_SITE_URL`.
+3. Push also needs `SUPABASE_SECRET_KEY` (see [news ingestion](#set-it-up)), which the sender uses to reach every reader's devices.
+
+Chrome, Edge, Firefox and Safari on macOS support it. On iPhone and iPad, readers first add Pulse to the Home Screen (Share → Add to Home Screen) and turn push on there. Signing out turns push off on that device. The service worker is `public/sw.js`.
+
+### Weekly email digest
+
+Readers who turn on **Weekly email digest** get the week's 10 most-read stories every Sunday at 08:00 UTC (`vercel.json`). It's sent with [Resend](https://resend.com):
+
+1. Create a Resend account and verify your domain. Until you do, Resend only delivers to your own address.
+2. Add to your host's environment:
+   - `RESEND_API_KEY` — server-only.
+   - `DIGEST_FROM` — the sender, e.g. `Pulse <digest@yourdomain.com>`, on the verified domain.
+   - `NEXT_PUBLIC_SITE_URL` — your live URL. The email's links use it.
+   - `CRON_SECRET` and `SUPABASE_SECRET_KEY` — as for ingestion. Vercel Cron sends `CRON_SECRET` itself.
+3. To send one by hand: `curl -H "Authorization: Bearer $CRON_SECRET" https://your-site/api/digest`. Each reader gets one email per week however often it runs. If a batch fails (say Resend's daily limit), those readers get it when you run it again that week; the response lists how many were sent and failed.
+
+Every email has an unsubscribe link, which asks for confirmation first, and a one-click unsubscribe header for email apps. Links are signed with `CRON_SECRET`, so changing it makes older links stop working. Resend's free plan sends 100 emails a day.
 
 ## News ingestion
 
@@ -126,19 +175,24 @@ src/
     (main)/            Three-column shell (nav · timeline · sidebar) and all app pages
     (auth)/            Full-screen login / signup
     auth/callback/     OAuth + email confirmation code exchange
-    api/feed/          Next page of a feed, for infinite scroll
-    api/ingest/        Protected endpoint that runs news ingestion
+    api/feed/          Next page of a feed, for infinite scroll; /new counts newer stories
+    api/notifications/ Next page of notifications; /unread for the badge
+    api/ingest/        Protected endpoint that runs news ingestion (and sends pending pushes)
+    api/digest/        Protected endpoint that mails the weekly digest; /unsubscribe for one-click
   components/
     feed/              Article card, actions bar, feed view, infinite-scroll list, breaking banner
-    layout/            Sidebars, mobile nav, sticky page header, search
+    layout/            Sidebars, mobile nav (with the unread badge), sticky page header, search
+    people/            Readers in lists
     ui/                Avatar, verified badge, generated cover art, tabs, switch, …
   lib/
     data/              Data access: mock data or Supabase, same return types; paged feeds
     ingest/            RSS/Atom parsing, cleanup, trend detection and the ingestion run
+    push/              Browser push: VAPID config, the sender and the browser side
+    digest/            Weekly digest email, run and Resend sender
     mock/              Mock sources, articles, comments, trends, notifications
     supabase/          Browser / server / proxy / admin clients and database types
-    store/             Client state: likes, follows and settings (account, or localStorage in demo mode)
-    actions/           Server Actions (auth, comments, reader activity)
+    store/             Client state: likes, follows, settings and unread notifications (account, or localStorage in demo mode)
+    actions/           Server Actions (auth, comments, reader activity, notifications, push, digest)
   proxy.ts             Supabase session refresh
 supabase/              Migrations, starter feeds, cron template and demo seed
 ```

@@ -6,21 +6,24 @@ import { toast } from "@/lib/store/toast";
 import { cn } from "@/lib/utils";
 
 /**
- * Follow / Following pill. Hovering "Following" turns it into a red
- * "Unfollow" button, just like X.
+ * Follow / Following pill for a source (`list` "following", the default) or a
+ * person ("people"). Hovering "Following" turns it into a red "Unfollow"
+ * button, just like X.
  */
 export function FollowButton({
-  sourceId,
+  id,
+  list = "following",
   name,
   size = "sm",
   className,
 }: {
-  sourceId: string;
+  id: string;
+  list?: "following" | "people";
   name: string;
   size?: "sm" | "md";
   className?: string;
 }) {
-  const [following, toggle] = useToggle("following", sourceId);
+  const [following, toggle] = useToggle(list, id);
   const [hovered, setHovered] = useState(false);
 
   return (

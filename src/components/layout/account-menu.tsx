@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/avatar";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { signOut } from "@/lib/actions/auth";
+import { turnOffPush } from "@/lib/push/browser";
 import type { Viewer } from "@/lib/types";
 
 export function AccountMenu({ viewer }: { viewer: Viewer }) {
@@ -60,7 +61,13 @@ export function AccountMenu({ viewer }: { viewer: Viewer }) {
               <LogOut className="size-5" /> Sign in with a real account
             </Link>
           ) : (
-            <form action={signOut}>
+            <form
+              action={async () => {
+                // This browser shouldn't keep getting the account's notifications.
+                await turnOffPush().catch(() => {});
+                await signOut();
+              }}
+            >
               <button
                 role="menuitem"
                 type="submit"

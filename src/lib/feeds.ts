@@ -69,3 +69,21 @@ export function parseFeedParams(params: URLSearchParams): FeedSpec | null {
       return null;
   }
 }
+
+/**
+ * Feeds that offer "new stories" as they're published: the newest-first and
+ * ranked ones. Search results and a source's top stories don't.
+ */
+export function isLiveFeed(feed: FeedSpec): boolean {
+  if (feed.kind === "search") return false;
+  return feed.kind !== "source" || feed.order === "latest";
+}
+
+/** The newest publication time among stories, to ask what's been published since. */
+export function newestPublishedAt(articles: Article[]): string | null {
+  let newest: string | null = null;
+  for (const article of articles) {
+    if (newest === null || Date.parse(article.publishedAt) > Date.parse(newest)) newest = article.publishedAt;
+  }
+  return newest;
+}

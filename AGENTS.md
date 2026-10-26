@@ -24,3 +24,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Lists of stories page through `getFeedPage` (`src/lib/data/feeds.ts`) and render with `<FeedList>`, which loads more from `/api/feed`. Don't load a fixed number of stories and filter them in the app.
 - The "For you" formula exists twice: `public.for_you_feed` (SQL) and `src/lib/ranking.ts` (demo mode). Change both together.
 - `ARTICLE_SELECT` in `src/lib/data/mappers.ts` lists article columns so `search_vector` isn't sent; add new article columns there.
+- Notifications are created by triggers in `supabase/migrations/20261027000000_notifications.sql`, not by app code. Their wording lives in `src/lib/notifications.ts`, shared by the page and push. After an action that can notify someone, call `sendPushSoon()` (`src/lib/push/send.ts`).
+- `comment_likes` links comments and profiles a second way, so embed a comment's author as `profiles!user_id`. `COMMENT_SELECT` in `src/lib/data/mappers.ts` does this.
+- Comments are read on every request (`getComments`, after `connection()`), so a reply a notification points at is always there. Don't put them back behind `"use cache"`.

@@ -22,3 +22,8 @@ export function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
+
+/** Badge text: counts above 99 show as "99+". */
+export function badgeLabel(count: number): string {
+  return count > 99 ? "99+" : String(count);
+}

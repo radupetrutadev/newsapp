@@ -1,15 +1,25 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { categoryName } from "@/lib/categories";
-import { mockComments, mockNotifications, mockTrends, mockUsers } from "@/lib/mock/community";
+import { mockComments, mockTrends, mockUsers, type MockComment } from "@/lib/mock/community";
 import { mockSources } from "@/lib/mock/sources";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createPublicClient } from "@/lib/supabase/server";
-import type { AppNotification, Article, CategorySlug, Comment, Source, Trend } from "@/lib/types";
+import type {
+  Article,
+  CategorySlug,
+  Comment,
+  PublicProfile,
+  Source,
+  Trend,
+  UserComment,
+} from "@/lib/types";
 import {
   ARTICLE_SELECT,
+  COMMENT_SELECT,
   fail,
   mapArticle,
   mapComment,
+  mapPublicProfile,
   mapSource,
   mapTrend,
   type ArticleRow,
@@ -246,36 +256,109 @@ export async function getSourceHandles(): Promise<string[]> {
 // ---------------------------------------------------------------------------
 // Comments
 
+/**
+ * Comments on a story, most liked first. Read on every request rather than
+ * cached, so a reply shows up straight away, also for the person a
+ * notification sends to it. Call after `connection()` (see the story page).
+ */
 export async function getComments(articleId: string): Promise<Comment[]> {
-  "use cache";
-  cacheLife("minutes");
-  cacheTag(`comments:${articleId}`);
-
   if (!isSupabaseConfigured()) {
-    const now = Date.now();
-    const users = new Map(mockUsers.map((user) => [user.id, user]));
     return mockComments
       .filter((comment) => comment.articleId === articleId)
-      .map(({ authorId, minutesAgo: age, ...comment }) => ({
-        ...comment,
-        author: users.get(authorId)!,
-        createdAt: minutesAgo(now, age),
-      }))
+      .map(fromMock(Date.now()))
       .sort((a, b) => b.likesCount - a.likesCount);
   }
 
+  const countedAt = new Date().toISOString();
   const { data, error } = await createPublicClient()
     .from("comments")
-    .select("*, author:profiles(*)")
+    .select(COMMENT_SELECT)
     .eq("article_id", articleId)
     .order("likes_count", { ascending: false })
     .limit(50);
   if (error) fail("comments", error);
-  return (data as CommentRow[]).map(mapComment);
+  return (data as unknown as CommentRow[]).map((row) => mapComment(row, countedAt));
+}
+
+function fromMock(now: number) {
+  const users = new Map(mockUsers.map((user) => [user.id, user]));
+  return ({ authorId, minutesAgo: age, ...comment }: MockComment): Comment => ({
+    ...comment,
+    author: users.get(authorId)!,
+    parentId: null,
+    replyToHandle: null,
+    createdAt: minutesAgo(now, age),
+  });
 }
 
 // ---------------------------------------------------------------------------
-// Trends, search and notifications
+// Readers' public pages
+
+const DEMO_JOINED_AT = "2025-06-01T00:00:00.000Z";
+
+export async function getUserProfile(rawHandle: string): Promise<PublicProfile | null> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("profiles");
+
+  const handle = rawHandle.toLowerCase();
+  if (!isSupabaseConfigured()) {
+    const user = mockUsers.find((candidate) => candidate.handle === handle);
+    return user ? { ...user, followersCount: 0, joinedAt: DEMO_JOINED_AT } : null;
+  }
+  // Handles are 3–15 letters, digits or underscores; anything else can't match.
+  if (!/^[a-z0-9_]{3,15}$/.test(handle)) return null;
+
+  const countedAt = new Date().toISOString();
+  const { data, error } = await createPublicClient().from("profiles").select("*").eq("handle", handle).maybeSingle();
+  if (error) fail(`profile "${handle}"`, error);
+  return data ? mapPublicProfile(data, countedAt) : null;
+}
+
+/**
+ * Handles to prerender reader pages for. Real readers' pages render on
+ * request; Cache Components needs one handle to check the route at build
+ * time, so this placeholder (which finds nobody) stands in.
+ */
+export function getUserHandles(): string[] {
+  return isSupabaseConfigured() ? ["__placeholder__"] : mockUsers.map((user) => user.handle);
+}
+
+/** A reader's newest comments, with the story each is on. */
+export async function getUserComments(userId: string, limit = 30): Promise<UserComment[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`user-comments:${userId}`);
+
+  if (!isSupabaseConfigured()) {
+    const articles = new Map((await getMockFeed()).map((article) => [article.id, article]));
+    return mockComments
+      .filter((comment) => comment.authorId === userId)
+      .map(fromMock(Date.now()))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit)
+      .map((comment) => {
+        const article = articles.get(comment.articleId);
+        return { ...comment, article: article ? { slug: article.slug, title: article.title } : null };
+      });
+  }
+
+  const countedAt = new Date().toISOString();
+  const { data, error } = await createPublicClient()
+    .from("comments")
+    .select(`${COMMENT_SELECT}, article:articles(slug, title)`)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) fail("comments", error);
+  return (data as unknown as (CommentRow & { article: UserComment["article"] })[]).map((row) => ({
+    ...mapComment(row, countedAt),
+    article: row.article,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Trends and search
 
 export async function getTrends(): Promise<Trend[]> {
   "use cache";
@@ -307,18 +390,4 @@ export async function searchSources(rawQuery: string): Promise<Source[]> {
       (field) => field.toLowerCase().includes(query),
     ),
   );
-}
-
-/** Notifications are mock-only until per-user activity is stored in Supabase. */
-export async function getNotifications(): Promise<AppNotification[]> {
-  "use cache";
-  cacheLife("minutes");
-
-  const now = Date.now();
-  return mockNotifications
-    .map(({ minutesAgo: age, ...notification }) => ({
-      ...notification,
-      createdAt: minutesAgo(now, age),
-    }))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }

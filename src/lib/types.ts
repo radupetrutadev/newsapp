@@ -79,13 +79,31 @@ export interface Viewer extends UserProfile {
   followersCount: number;
 }
 
+/** A reader's public page: their profile and how many people follow them. */
+export interface PublicProfile extends UserProfile {
+  followersCount: number;
+  /** When the count was read; see Source.countedAt. Absent on demo data. */
+  countedAt?: string;
+  joinedAt: string;
+}
+
 export interface Comment {
   id: string;
   articleId: string;
   author: UserProfile;
   body: string;
   likesCount: number;
+  /** The comment this one replies to, if any, and its author's handle. */
+  parentId: string | null;
+  replyToHandle: string | null;
+  /** When the like count was read; see Article.countedAt. Absent on demo data. */
+  countedAt?: string;
   createdAt: string;
+}
+
+/** A comment listed on its author's page, with the story it's on. */
+export interface UserComment extends Comment {
+  article: { slug: string; title: string } | null;
 }
 
 export interface Trend {
@@ -97,28 +115,24 @@ export interface Trend {
   category: CategorySlug;
 }
 
-export type NotificationKind =
-  | "breaking"
-  | "like"
-  | "repost"
-  | "follow"
-  | "reply"
-  | "mention"
-  | "digest";
+export type NotificationKind = "breaking" | "like" | "follow" | "reply" | "mention";
 
-export interface NotificationActor {
-  name: string;
-  handle: string;
-  color: string;
-}
+/** Who a notification is from: readers, or the source of a breaking story. */
+export type NotificationActor =
+  | { type: "user"; name: string; handle: string; avatarUrl: string | null }
+  | { type: "source"; name: string; handle: string; color: string; logoUrl: string | null };
 
 export interface AppNotification {
   id: string;
   kind: NotificationKind;
+  /** The newest few; `actorsCount` says how many there are in all. */
   actors: NotificationActor[];
+  actorsCount: number;
   text: string;
   preview: string | null;
   href: string;
   createdAt: string;
+  /** When someone last joined it, e.g. another like. The list is sorted by it. */
+  updatedAt: string;
   unread: boolean;
 }

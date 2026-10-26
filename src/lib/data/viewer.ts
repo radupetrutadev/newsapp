@@ -38,6 +38,6 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     email: user.email ?? null,
     isDemo: false,
     joinedAt: profile?.created_at ?? user.created_at,
-    followersCount: 0,
+    followersCount: profile?.followers_count ?? 0,
   };
 });

@@ -73,7 +73,7 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
             <span className={cn(iconButton, "border border-[#536471]")} title="Notify me">
               <BellPlus className="size-5" />
             </span>
-            <FollowButton sourceId={source.id} name={source.name} size="md" />
+            <FollowButton id={source.id} name={source.name} size="md" />
           </>
         }
         name={source.name}
@@ -112,7 +112,9 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
             : []),
           { icon: CalendarDays, content: `Joined ${formatMonthYear(source.joinedAt)}` },
         ]}
-        stats={[{ label: "Followers", value: <FollowerCount source={source} /> }]}
+        stats={[
+          { key: "followers", label: <FollowerCount of={source} noun />, value: <FollowerCount of={source} /> },
+        ]}
       />
 
       <SourceArticles sourceId={source.id} latest={latest} name={source.name} />

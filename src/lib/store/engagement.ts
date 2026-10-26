@@ -17,7 +17,8 @@ import { toast } from "./toast";
 export type { EngagementList };
 
 /*
- * Likes, reposts, bookmarks and follows.
+ * Likes, reposts, bookmarks and follows (of sources, topics and people), and
+ * likes on comments.
  * - Demo mode: saved in this browser.
  * - With Supabase: loaded from the reader's account by <ActivitySync> and
  *   saved with server actions. Changes show at once and are rolled back if
@@ -38,7 +39,15 @@ interface EngagementState {
   changes: Partial<Record<EngagementList, Record<string, ActivityChange[]>>>;
 }
 
-const emptyLists: Lists = { liked: [], reposted: [], bookmarked: [], following: [], topics: [] };
+const emptyLists: Lists = {
+  liked: [],
+  reposted: [],
+  bookmarked: [],
+  following: [],
+  topics: [],
+  likedComments: [],
+  people: [],
+};
 const demoLists: Lists = {
   ...emptyLists,
   following: defaultFollowedSourceIds,
@@ -117,6 +126,8 @@ const signInPrompts: Record<EngagementList, string> = {
   bookmarked: "Sign in to bookmark stories",
   following: "Sign in to follow sources",
   topics: "Sign in to follow topics",
+  likedComments: "Sign in to like replies",
+  people: "Sign in to follow people",
 };
 
 /** Whether the account can be written to; explains why not with a toast. */
@@ -252,7 +263,7 @@ export function useToggle(list: EngagementList, id: string): [boolean, () => boo
  * reader's own changes since it was read (see `countAdjustment`).
  */
 export function useAdjustedCount(
-  list: "liked" | "reposted" | "following",
+  list: "liked" | "reposted" | "following" | "likedComments" | "people",
   id: string,
   count: number,
   countedAt: string | undefined,

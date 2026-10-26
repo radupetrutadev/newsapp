@@ -1,31 +1,42 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { ArrowUp } from "lucide-react";
+import { use, useCallback, useEffect, useState, type ReactNode } from "react";
+import { PagedListFooter, usePagedList, type Page } from "@/components/ui/paged-list";
 import { ArticleSkeleton, FeedSkeleton } from "@/components/ui/skeleton";
-import { feedParams, type FeedPage, type FeedSpec } from "@/lib/feeds";
+import { feedParams, isLiveFeed, newestPublishedAt, type FeedPage, type FeedSpec } from "@/lib/feeds";
 import { getEngagement } from "@/lib/store/engagement";
+import { toast } from "@/lib/store/toast";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Article } from "@/lib/types";
+import { formatCount } from "@/lib/utils";
 import { ArticleList } from "./article-list";
 
 const demo = !isSupabaseConfigured();
 
-/** Start loading the next page this far before the reader reaches the end. */
-const PRELOAD_MARGIN = "1200px";
+/** How often an open feed asks whether newer stories are out. */
+const NEW_STORIES_POLL_MS = 60_000;
 
-async function fetchPage(feed: FeedSpec, cursor: string | null): Promise<FeedPage> {
+function feedQuery(feed: FeedSpec): URLSearchParams {
   const params = feedParams(feed);
-  if (cursor) params.set("cursor", cursor);
   if (demo) {
     // Demo mode keeps follows in this browser, so the server needs to be told.
     const { following, topics } = getEngagement();
     params.set("sources", following.join(","));
     params.set("topics", topics.join(","));
   }
+  return params;
+}
+
+/** `fresh` skips the server's cache, for the first page after new stories came in. */
+async function fetchPage(feed: FeedSpec, cursor: string | null, fresh = false): Promise<Page<Article>> {
+  const params = feedQuery(feed);
+  if (cursor) params.set("cursor", cursor);
+  if (fresh) params.set("fresh", "1");
   const response = await fetch(`/api/feed?${params}`);
   if (!response.ok) throw new Error(`Couldn't load the feed: HTTP ${response.status}`);
-  return response.json();
+  const page = (await response.json()) as FeedPage;
+  return { items: page.articles, next: page.next };
 }
 
 export interface FeedListProps {
@@ -38,95 +49,36 @@ export interface FeedListProps {
   end?: ReactNode;
 }
 
-interface State {
-  articles: Article[];
-  /** Cursor for the next page: undefined before the first page, null after the last. */
-  next: string | null | undefined;
-  loading: boolean;
-  failed: boolean;
-}
-
 /**
- * Stories that keep loading as the reader scrolls. The feed is fixed for the
- * life of the list: give it a new `key` to show a different one.
+ * Stories that keep loading as the reader scrolls, with a "new stories"
+ * button when newer ones are published (see isLiveFeed). The feed is fixed
+ * for the life of the list: give it a new `key` to show a different one.
  */
 export function FeedList({ feed: initialFeed, initial, empty, end }: FeedListProps) {
   const [feed] = useState(initialFeed);
-  const [state, setState] = useState<State>({
-    articles: initial?.articles ?? [],
-    next: initial ? initial.next : undefined,
-    loading: false,
-    failed: false,
-  });
-  const busy = useRef(false);
-  const sentinel = useRef<HTMLDivElement>(null);
-  const { articles, next, loading, failed } = state;
+  const load = useCallback((cursor: string | null) => fetchPage(feed, cursor), [feed]);
+  const list = usePagedList(load, initial && { items: initial.articles, next: initial.next });
+  const since = isLiveFeed(feed) && !demo ? newestPublishedAt(list.items) : null;
+  const newStories = useNewStoryCount(feed, since);
 
-  const loadMore = useCallback(() => {
-    if (busy.current || next === null) return;
-    busy.current = true;
-    setState((current) => ({ ...current, loading: true, failed: false }));
-    fetchPage(feed, next ?? null).then(
-      (page) => {
-        busy.current = false;
-        setState((current) => {
-          // Ranked feeds can shift a little between pages; don't show a story twice.
-          const seen = new Set(current.articles.map((article) => article.id));
-          const added = page.articles.filter((article) => !seen.has(article.id));
-          return { articles: [...current.articles, ...added], next: page.next, loading: false, failed: false };
-        });
-      },
-      (error) => {
-        busy.current = false;
-        console.error(error);
-        setState((current) => ({ ...current, loading: false, failed: true }));
-      },
-    );
-  }, [feed, next]);
-
-  // The first page, when the server didn't render it.
-  useEffect(() => {
-    if (next === undefined && !failed) loadMore();
-  }, [next, failed, loadMore]);
-
-  // The next page, once the end of the list comes near. Observing again after
-  // each page also catches a short page that leaves the end in view.
-  useEffect(() => {
-    const node = sentinel.current;
-    if (!node || !next || loading || failed) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) loadMore();
-      },
-      { rootMargin: `0px 0px ${PRELOAD_MARGIN} 0px` },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [next, loading, failed, loadMore]);
-
-  if (next === undefined && !failed) return <FeedSkeleton count={3} />;
-  if (articles.length === 0 && next === null) return empty;
+  if (list.next === undefined && !list.failed) return <FeedSkeleton count={3} />;
+  if (list.items.length === 0 && list.next === null) return empty;
 
   return (
-    <>
-      {articles.length > 0 ? <ArticleList articles={articles} /> : null}
-      {next === null ? (
-        end
-      ) : failed ? (
-        <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
-          <p className="text-[15px] text-muted">
-            {articles.length > 0 ? "Couldn't load more stories." : "Couldn't load stories."}
-          </p>
-          <Button variant="outline" onClick={loadMore}>
-            Try again
-          </Button>
-        </div>
-      ) : (
-        <div ref={sentinel} aria-busy={loading} aria-label="Loading more stories">
-          <ArticleSkeleton />
-        </div>
-      )}
-    </>
+    <div>
+      {list.items.length > 0 ? <ArticleList articles={list.items} /> : null}
+      {newStories > 0 ? (
+        <NewStoriesButton
+          count={newStories}
+          onClick={async () => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            const loaded = await list.reload(() => fetchPage(feed, null, true));
+            if (!loaded) toast("Couldn't load the new stories. Try again.");
+          }}
+        />
+      ) : null}
+      <PagedListFooter list={list} noun="stories" placeholder={<ArticleSkeleton />} end={end} />
+    </div>
   );
 }
 
@@ -136,4 +88,56 @@ export function StreamedFeedList({
   ...props
 }: Omit<FeedListProps, "initial"> & { initial: Promise<FeedPage | null> }) {
   return <FeedList {...props} initial={use(initial)} />;
+}
+
+/**
+ * How many stories in the feed were published after `since`, checked every
+ * minute while the tab is visible and as soon as it's shown again.
+ */
+function useNewStoryCount(feed: FeedSpec, since: string | null): number {
+  const [found, setFound] = useState<{ since: string; count: number } | null>(null);
+
+  useEffect(() => {
+    if (!since) return;
+    let cancelled = false;
+    const check = async () => {
+      if (document.visibilityState !== "visible") return;
+      const params = feedQuery(feed);
+      params.set("since", since);
+      try {
+        const response = await fetch(`/api/feed/new?${params}`, { cache: "no-store" });
+        if (!response.ok) return;
+        const { count } = (await response.json()) as { count: number };
+        if (!cancelled) setFound({ since, count });
+      } catch {
+        // Offline; the next check will try again.
+      }
+    };
+    const timer = window.setInterval(check, NEW_STORIES_POLL_MS);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [feed, since]);
+
+  // A count from before the list was reloaded no longer applies.
+  return found && found.since === since ? found.count : 0;
+}
+
+/** Floats at the bottom of the screen while the feed is in view. */
+function NewStoriesButton({ count, onClick }: { count: number; onClick: () => void }) {
+  return (
+    <div className="pointer-events-none sticky bottom-[calc(69px+env(safe-area-inset-bottom))] z-20 flex h-0 items-start justify-center sm:bottom-6">
+      <button
+        type="button"
+        onClick={onClick}
+        className="animate-fade-in pointer-events-auto flex -translate-y-full items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[15px] font-bold text-white shadow-[0_0_12px_rgba(0,0,0,0.6)] transition-colors hover:bg-accent/90"
+      >
+        <ArrowUp className="size-4" strokeWidth={2.5} />
+        {count === 1 ? "1 new story" : `${formatCount(count)} new stories`}
+      </button>
+    </div>
+  );
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { feedParams, MAX_QUERY_LENGTH, parseFeedParams, type FeedSpec } from "./feeds";
+import { feedParams, isLiveFeed, MAX_QUERY_LENGTH, newestPublishedAt, parseFeedParams, type FeedSpec } from "./feeds";
+import type { Article } from "./types";
 
 const parse = (query: string) => parseFeedParams(new URLSearchParams(query));
 
@@ -37,5 +38,26 @@ describe("feedParams / parseFeedParams", () => {
     expect(parse("feed=search&q=%20%20moon%20")).toEqual({ kind: "search", query: "moon" });
     expect(parse("feed=search&q=%20")).toBeNull();
     expect(parse(`feed=search&q=${"a".repeat(MAX_QUERY_LENGTH + 1)}`)).toBeNull();
+  });
+});
+
+describe("isLiveFeed", () => {
+  it("offers new stories on newest-first and ranked feeds only", () => {
+    expect(isLiveFeed({ kind: "for-you", category: null })).toBe(true);
+    expect(isLiveFeed({ kind: "following", category: "tech" })).toBe(true);
+    expect(isLiveFeed({ kind: "topic", category: "climate" })).toBe(true);
+    expect(isLiveFeed({ kind: "source", sourceId: "s", order: "latest" })).toBe(true);
+    expect(isLiveFeed({ kind: "source", sourceId: "s", order: "top" })).toBe(false);
+    expect(isLiveFeed({ kind: "search", query: "moon" })).toBe(false);
+  });
+});
+
+describe("newestPublishedAt", () => {
+  it("finds the newest story, whatever the order", () => {
+    const at = (publishedAt: string) => ({ publishedAt }) as Article;
+    expect(newestPublishedAt([])).toBeNull();
+    expect(
+      newestPublishedAt([at("2026-10-26T08:00:00Z"), at("2026-10-26T09:30:00.5+00:00"), at("2026-10-25T23:00:00Z")]),
+    ).toBe("2026-10-26T09:30:00.5+00:00");
   });
 });

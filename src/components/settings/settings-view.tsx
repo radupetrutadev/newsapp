@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { PushSetting } from "./push-setting";
 import { SettingsRow, SettingsSection } from "./settings-primitives";
 import { resetEngagement, useEngagementStatus } from "@/lib/store/engagement";
 import { resetSettings, updateSetting, useSettings, type Settings } from "@/lib/store/settings";
@@ -58,7 +59,7 @@ const notificationRows: ToggleRow[] = [
     key: "breakingAlerts",
     icon: BellRing,
     title: "Breaking news alerts",
-    description: "Get notified the moment a major story breaks.",
+    description: "When a source or topic you follow breaks a major story.",
   },
   {
     key: "dailyBrief",
@@ -111,6 +112,7 @@ export function SettingsView() {
         title="Notifications"
         description="Pick what's worth interrupting you for."
       >
+        <PushSetting />
         <Toggles rows={notificationRows} />
       </SettingsSection>
 

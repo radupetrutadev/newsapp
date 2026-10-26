@@ -2,6 +2,7 @@ import { ExternalLink, Zap } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { ArticleTimestamp } from "@/components/article/article-timestamp";
 import { CommentThread } from "@/components/article/comment-thread";
@@ -81,7 +82,7 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
             </span>
             <span className="block truncate text-[15px] text-muted">@{source.handle}</span>
           </Link>
-          <FollowButton sourceId={source.id} name={source.name} />
+          <FollowButton id={source.id} name={source.name} />
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px]">
@@ -194,6 +195,8 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
 }
 
 async function Replies({ article }: { article: Article }) {
+  // Replies are read fresh for each visit (see getComments).
+  await connection();
   const [comments, viewer] = await Promise.all([getComments(article.id), getViewer()]);
   return (
     <CommentThread

@@ -4,13 +4,14 @@ import { Heart, Repeat2, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ArticleList } from "@/components/feed/article-list";
+import { PersonRow } from "@/components/people/person-row";
 import { SourceRow } from "@/components/source/source-row";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FeedSkeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { useEngagement, useEngagementStatus } from "@/lib/store/engagement";
-import type { Article, Source } from "@/lib/types";
+import type { Article, Source, UserProfile } from "@/lib/types";
 
 type ProfileTab = "likes" | "reposts" | "following";
 
@@ -20,12 +21,24 @@ const tabs: { id: ProfileTab; label: string }[] = [
   { id: "following", label: "Following" },
 ];
 
-export function ProfileTabs({ articles, sources }: { articles: Article[]; sources: Source[] }) {
+export function ProfileTabs({
+  articles,
+  sources,
+  people,
+}: {
+  articles: Article[];
+  sources: Source[];
+  /** Readers who may be among those followed; the store says which are. */
+  people: UserProfile[];
+}) {
   const [tab, setTab] = useState<ProfileTab>("likes");
   const loading = useEngagementStatus() === "loading";
-  const { liked, reposted, following } = useEngagement();
+  const { liked, reposted, following, people: followedPeople } = useEngagement();
   const byId = new Map(articles.map((article) => [article.id, article]));
   const pick = (ids: string[]) => ids.flatMap((id) => byId.get(id) ?? []);
+  const followedSources = sources.filter((source) => following.includes(source.id));
+  const peopleById = new Map(people.map((person) => [person.id, person]));
+  const followed = followedPeople.flatMap((id) => peopleById.get(id) ?? []);
 
   return (
     <>
@@ -54,13 +67,16 @@ export function ProfileTabs({ articles, sources }: { articles: Article[]; source
         )
       ) : null}
       {!loading && tab === "following" ? (
-        following.length > 0 ? (
+        followedSources.length + followed.length > 0 ? (
           <div>
-            {sources
-              .filter((source) => following.includes(source.id))
-              .map((source) => (
-                <SourceRow key={source.id} source={source} showBio />
-              ))}
+            {followedSources.length > 0 && followed.length > 0 ? <ListHeading>Sources</ListHeading> : null}
+            {followedSources.map((source) => (
+              <SourceRow key={source.id} source={source} showBio />
+            ))}
+            {followedSources.length > 0 && followed.length > 0 ? <ListHeading>People</ListHeading> : null}
+            {followed.map((person) => (
+              <PersonRow key={person.id} person={person} showBio />
+            ))}
           </div>
         ) : (
           <EmptyState
@@ -79,7 +95,12 @@ export function ProfileTabs({ articles, sources }: { articles: Article[]; source
   );
 }
 
+function ListHeading({ children }: { children: React.ReactNode }) {
+  return <h3 className="px-4 pt-4 pb-1 text-[15px] font-bold text-muted">{children}</h3>;
+}
+
+/** Sources and people the reader follows. */
 export function FollowingCount() {
-  const { following } = useEngagement();
-  return <>{following.length}</>;
+  const { following, people } = useEngagement();
+  return <>{following.length + people.length}</>;
 }
