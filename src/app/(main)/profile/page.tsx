@@ -10,7 +10,7 @@ import { UserAvatar } from "@/components/ui/avatar";
 import { buttonClasses } from "@/components/ui/button";
 import { Cover } from "@/components/ui/cover";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getFeed, getSources } from "@/lib/data";
+import { getLatestArticles, getSources } from "@/lib/data";
 import { getViewerArticles } from "@/lib/data/activity";
 import { getViewer } from "@/lib/data/viewer";
 import type { Article, Source } from "@/lib/types";
@@ -19,7 +19,7 @@ import { formatCount, formatMonthYear } from "@/lib/utils";
 export const metadata: Metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
-  const [articles, sources] = await Promise.all([getFeed(), getSources()]);
+  const [articles, sources] = await Promise.all([getLatestArticles(100), getSources()]);
 
   return (
     <Suspense fallback={<ProfileSkeleton />}>

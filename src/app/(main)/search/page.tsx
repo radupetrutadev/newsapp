@@ -2,14 +2,16 @@ import { SearchX } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArticleList } from "@/components/feed/article-list";
+import { FeedList } from "@/components/feed/feed-list";
 import { BackButton } from "@/components/layout/back-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchBox } from "@/components/layout/search-box";
 import { SourceRow } from "@/components/source/source-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FeedSkeleton } from "@/components/ui/skeleton";
-import { getTrends, search } from "@/lib/data";
+import { getTrends, searchSources } from "@/lib/data";
+import { getFeedPage } from "@/lib/data/feeds";
+import { MAX_QUERY_LENGTH } from "@/lib/feeds";
 
 export const metadata: Metadata = { title: "Search" };
 
@@ -17,7 +19,7 @@ type SearchParams = PageProps<"/search">["searchParams"];
 
 async function readQuery(searchParams: SearchParams): Promise<string> {
   const { q } = await searchParams;
-  return (Array.isArray(q) ? q[0] : q)?.trim() ?? "";
+  return (Array.isArray(q) ? q[0] : q)?.trim().slice(0, MAX_QUERY_LENGTH) ?? "";
 }
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
@@ -71,9 +73,10 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
     );
   }
 
-  const { articles, sources } = await search(query);
+  const feed = { kind: "search", query } as const;
+  const [stories, sources] = await Promise.all([getFeedPage(feed, null), searchSources(query)]);
 
-  if (articles.length === 0 && sources.length === 0) {
+  if (stories.articles.length === 0 && sources.length === 0) {
     return (
       <EmptyState
         icon={SearchX}
@@ -95,12 +98,12 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
           ))}
         </section>
       ) : null}
-      {articles.length > 0 ? (
+      {stories.articles.length > 0 ? (
         <section aria-labelledby="story-results">
           <h2 id="story-results" className="border-b border-border px-4 pt-3 pb-3 text-xl font-extrabold">
-            Stories <span className="text-[15px] font-normal text-muted">· {articles.length}</span>
+            Stories
           </h2>
-          <ArticleList articles={articles} />
+          <FeedList feed={feed} initial={stories} empty={null} />
         </section>
       ) : null}
     </>

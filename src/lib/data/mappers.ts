@@ -1,11 +1,22 @@
 import type { Row } from "@/lib/supabase/database.types";
 import type { Article, CategorySlug, Comment, Source, Trend, UserProfile } from "@/lib/types";
 
-/** Articles with their publisher embedded. */
-export const ARTICLE_SELECT = "*, source:sources(*)";
+/**
+ * Articles with their publisher embedded. Columns are listed so the search
+ * vector, which only the database needs, isn't sent with every story.
+ */
+export const ARTICLE_SELECT = `
+  id, slug, source_id, title, summary, body, image_url, url, category, tags, is_breaking,
+  read_time_minutes, comments_count, reposts_count, likes_count, views_count, published_at,
+  created_at, source:sources(*)
+`;
 
-export type ArticleRow = Row<"articles"> & { source: Row<"sources"> | null };
+export type ArticleRow = Omit<Row<"articles">, "search_vector"> & { source: Row<"sources"> | null };
 export type CommentRow = Row<"comments"> & { author: Row<"profiles"> | null };
+
+export function fail(what: string, error: { message: string }): never {
+  throw new Error(`Supabase: failed to load ${what}: ${error.message}`);
+}
 
 export function mapSource(row: Row<"sources">, countedAt: string): Source {
   return {

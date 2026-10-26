@@ -228,6 +228,11 @@ function useEngagementState(): EngagementState {
   return useSyncExternalStore(source.subscribe, source.getSnapshot, source.getServerSnapshot);
 }
 
+/** The current lists, for code outside React such as event handlers. */
+export function getEngagement(): Lists {
+  return source.getSnapshot().lists;
+}
+
 export function useEngagement(): Lists {
   return useEngagementState().lists;
 }

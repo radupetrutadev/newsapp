@@ -21,3 +21,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Reader activity (likes, reposts, bookmarks, follows, topics, settings) lives in the client stores in `src/lib/store`. They use localStorage in demo mode; otherwise they're filled by `ActivitySync` in the main layout and saved with `src/lib/actions/activity.ts`. Keep the defaults in `src/lib/settings.ts` in sync with `public.user_settings`.
 - Cached counts carry `countedAt`; show them through `useAdjustedCount` so the reader's own changes are neither missing nor counted twice.
 - Read the Supabase session only through `createClient()` in `src/lib/supabase/server.ts`. It calls `io()` first, because Supabase Auth reads the clock, which Next.js forbids while prerendering.
+- Lists of stories page through `getFeedPage` (`src/lib/data/feeds.ts`) and render with `<FeedList>`, which loads more from `/api/feed`. Don't load a fixed number of stories and filter them in the app.
+- The "For you" formula exists twice: `public.for_you_feed` (SQL) and `src/lib/ranking.ts` (demo mode). Change both together.
+- `ARTICLE_SELECT` in `src/lib/data/mappers.ts` lists article columns so `search_vector` isn't sent; add new article columns there.
