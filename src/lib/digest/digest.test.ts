@@ -7,8 +7,10 @@ import { digestWeek, runDigest, type DigestRecipient, type DigestStore, type Out
 import { isValidUnsubscribeToken, unsubscribeToken } from "./token";
 
 const sources = new Map(mockSources.map((source) => [source.id, source]));
-const stories: Article[] = mockArticles.slice(0, 3).map(({ sourceId, minutesAgo, ...article }) => ({
+const stories: Article[] = mockArticles.slice(0, 3).map(({ sourceId, minutesAgo, videoUrl, isSensitive, ...article }) => ({
   ...article,
+  videoUrl: videoUrl ?? null,
+  isSensitive: isSensitive ?? false,
   source: sources.get(sourceId)!,
   publishedAt: new Date(Date.parse("2026-10-25T12:00:00Z") - minutesAgo * 60_000).toISOString(),
 }));

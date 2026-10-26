@@ -28,7 +28,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
 | Route | Page |
 | --- | --- |
 | `/` | **Feed** — ranked "For you" and "Following" tabs with infinite scroll, topic chips, live breaking banner |
-| `/article/[slug]` | Story — full article, engagement stats, replies (and replies to replies), related stories |
+| `/article/[slug]` | Story — full article (and video), engagement stats, threaded replies, related stories |
 | `/explore` | Search, most-read hero, top stories carousel, trends, topics, sources |
 | `/search?q=` | Search results for stories and sources |
 | `/notifications` | Replies, mentions, likes, new followers and breaking news: All / Breaking / Mentions |
@@ -36,9 +36,11 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
 | `/topics`, `/topics/[slug]` | Follow topics; per-topic feed |
 | `/source/[handle]` | Publisher profile (banner, bio, follow, Latest / Top) |
 | `/profile` | Your profile — likes, reposts, sources and people you follow |
+| `/profile/edit` | Edit your name, bio and photo |
 | `/user/[handle]` | A reader's page — follow them, see their replies |
-| `/settings` | Account, feed, notification and display preferences |
+| `/settings` | Account (edit profile, change password, delete account), feed, notification and display preferences |
 | `/login`, `/signup` | Email/password and Google/GitHub sign-in via Supabase Auth |
+| `/forgot-password`, `/reset-password` | Email a reset link; choose a new password (also reached from Settings) |
 | `/unsubscribe` | Where the link in the weekly digest email goes |
 | `/about`, `/terms`, `/privacy` | Static pages (Terms and Privacy are placeholders) |
 
@@ -51,21 +53,23 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
    - `supabase/migrations/20261024000000_activity.sql` — reposts, followed topics and settings tables, triggers that keep like, repost and follower counts in sync, and the story view counter.
    - `supabase/migrations/20261026000000_feeds_search.sql` — paging indexes, full-text search, and the functions behind "For you", "Following" and search results. See [Feeds and search](#feeds-and-search).
    - `supabase/migrations/20261027000000_notifications.sql` — replies to comments, comment likes, following people, notifications and the triggers that create them, push subscriptions and digest records. See [Notifications](#notifications). Safe to run again if a run stopped partway.
+   - `supabase/migrations/20261028000000_accounts_community.sql` — profile limits and the `avatars` storage bucket, reply threads, deleting and reporting replies, spam limits, account deletion clean-up, and video and sensitive-content columns on stories. See [Accounts and community](#accounts-and-community). Safe to run again if a run stopped partway.
 
    Run each new migration **before** deploying the code that needs it. The build prerenders pages that read the database, so a build against a database without the migration fails; on Vercel the live site keeps running the previous deploy until a build succeeds.
 3. Load content — pick one:
    - **Real news:** run `supabase/feeds.sql` (12 publishers, 28 RSS feeds), then set up [news ingestion](#news-ingestion).
    - **Demo content:** run `supabase/seed.sql` for the fictional stories from demo mode. Don't mix it with real news in production.
 4. Copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Project Settings → API). The legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` also works.
-5. For OAuth, enable Google and/or GitHub under Authentication → Providers and add `http://localhost:3000/auth/callback` (and your production URL) to the redirect allow list.
+5. Under Authentication → URL Configuration, add `http://localhost:3000/**` and your production URL followed by `/**` to the Redirect URLs. Sign-in links, OAuth and password-reset links return to `/auth/callback` (reset links with `?next=/reset-password`). For OAuth, also enable Google and/or GitHub under Authentication → Providers.
 
 Restart `npm run dev` after changing env vars.
 
 ### What uses Supabase today
 
 - **Reads:** feeds, search, articles, sources, trends and comments (`src/lib/data`). Public reads use a cookie-free client inside `"use cache"` functions, so pages are prerendered and revalidate every minute.
-- **Auth:** sign in, sign up, OAuth, sign out (`src/lib/actions/auth.ts`); the session is refreshed in `src/proxy.ts`.
-- **Writes:** replies (`src/lib/actions/comments.ts`); likes, reposts, bookmarks, comment likes, followed sources, topics and people, settings and story views (`src/lib/actions/activity.ts`); notifications read and push subscriptions (`src/lib/actions/notifications.ts`, `push.ts`); stories and trends from news ingestion (`src/lib/ingest`).
+- **Auth:** sign in, sign up, OAuth, sign out, password reset and change (`src/lib/actions/auth.ts`); the session is refreshed in `src/proxy.ts`. Deleting an account uses the secret key (`src/lib/actions/account.ts`).
+- **Storage:** profile photos in the `avatars` bucket (`src/lib/actions/account.ts`).
+- **Writes:** profiles (`src/lib/actions/account.ts`); replies, deleting and reporting them (`src/lib/actions/comments.ts`); likes, reposts, bookmarks, comment likes, followed sources, topics and people, settings and story views (`src/lib/actions/activity.ts`); notifications read and push subscriptions (`src/lib/actions/notifications.ts`, `push.ts`); stories and trends from news ingestion (`src/lib/ingest`).
 
 ### Reader activity
 
@@ -84,6 +88,54 @@ Feeds load 20 stories at a time. The server renders the first page; more load fr
 - **Search:** Postgres full-text search over the headline, tags, summary and topic, with English word forms ("deals" finds "deal"). Every word must match. Words of four letters or more also match longer words ("clim" finds "climate"). Headline matches count most, and newer stories rank higher. Sources are matched by name, handle and description.
 - **Paging:** newest-first lists continue after the last story shown, so a page never repeats or skips a story, even when new ones arrive. Ranked lists stop after 2,000 stories.
 - **Demo mode:** the same feeds over the mock stories, with the same ranking (`src/lib/ranking.ts`). Follows stay in the browser and are sent with each request.
+
+## Accounts and community
+
+### Profiles
+
+- **Edit profile** (`/profile/edit`, from your profile or Settings): name (up to 50 characters), bio (up to 160) and photo. The browser crops a photo to a square and shrinks it to 400 × 400 before uploading, so any JPG, PNG, WebP (or other image the browser can open) works. The server checks the file really is a JPG, PNG or WebP.
+- Photos go to the public `avatars` bucket in Supabase Storage, which the migration creates, in a folder per reader (`avatars/<user id>/`). Storage policies let readers write only to their own folder. Older photos are removed when a new one is saved. Photo URLs must be `https://`, as `next/image` only loads those; a local Supabase on plain `http://` can't save photos.
+- Readers' public pages are at `/user/<handle>`, with their replies; comment authors link there.
+
+### Passwords and deleting an account
+
+- **Forgot password** (`/forgot-password`, linked from sign in) emails a reset link. The page gives the same answer whether or not an account uses the address. The link signs the reader in and opens `/reset-password`, where they choose a new password; signed-in readers can open it from Settings → Password.
+- Reset links use a one-time code tied to the browser that asked for them. To make them work on another device too, change the **Reset password** email template (Authentication → Emails) to link to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`.
+- **Delete account** (Settings) asks for the reader's username, then removes their photos and their auth user. Everything else goes with the profile: likes, bookmarks, follows, settings, notifications and replies. Replies that other people answered stay in their threads as "This reply was deleted", without the author. It needs `SUPABASE_SECRET_KEY` on the server; without it, the button explains that deletion isn't set up.
+
+### Replies
+
+- **Threads:** replies are grouped under the comment that started the thread, oldest first, with "Replying to @handle" when they answer another reply. Threads with more than three replies show two until opened. Each story loads its 100 most-liked threads.
+- **Likes** on replies are saved like other likes.
+- **Delete:** readers delete their own replies from the ⋯ menu. One that others answered stays as a placeholder so the thread still makes sense; it goes once nothing answers it.
+- **Report:** readers report other people's replies (spam, harassment or hate, misleading, something else). Reported replies fold away for the reporter. Reports from three readers hide a reply for everyone (`comments.hidden_at`) until someone reviews it.
+- **Spam limits**, checked by the database so every client gets them: 5 replies a minute and 30 an hour per reader, at most two links in a reply, and not the same text twice on one story in a day. Readers can send 20 reports an hour. The reader sees the database's message, such as "You're replying too fast".
+
+Review reported replies in the SQL editor:
+
+```sql
+-- Replies with reports, most reported first.
+select c.id, c.body, p.handle, c.hidden_at, count(*) as reports, array_agg(distinct r.reason) as reasons
+from public.comment_reports r
+join public.comments c on c.id = r.comment_id
+left join public.profiles p on p.id = c.user_id
+group by c.id, p.handle
+order by reports desc;
+
+-- Show a hidden reply again, forgetting its reports so the next one doesn't hide it straight away.
+delete from public.comment_reports where comment_id = '<comment id>';
+update public.comments set hidden_at = null where id = '<comment id>';
+
+-- Or hide one yourself.
+update public.comments set hidden_at = now() where id = '<comment id>';
+```
+
+### Video and sensitive media
+
+- News ingestion stores a story's video when the feed offers an MP4 or WebM (`media:content` or an enclosure, HTTPS only), and marks a story sensitive when the feed rates its media adult (`media:rating`) or the headline or summary carries a warning such as "graphic footage" or "distressing images".
+- **Autoplay video** (Settings, off by default): story videos play muted, on a loop, while they're on screen in feeds, with a button to unmute. Otherwise they show a play badge and play on the story page, which always has a player. Readers who ask their system to reduce motion don't get autoplay.
+- **Hide sensitive content** (on by default): sensitive photos and videos are blurred, with a button to show them.
+- In demo mode, the "solar storm" story has a video (`public/demo/aurora.mp4`) and the "wildfire" story is marked sensitive.
 
 ## Notifications
 
@@ -174,16 +226,20 @@ src/
   app/
     (main)/            Three-column shell (nav · timeline · sidebar) and all app pages
     (auth)/            Full-screen login / signup
-    auth/callback/     OAuth + email confirmation code exchange
+    auth/callback/     OAuth, email confirmation and password-reset code exchange
+    auth/confirm/      Email links with a token hash (cross-device reset links)
     api/feed/          Next page of a feed, for infinite scroll; /new counts newer stories
     api/notifications/ Next page of notifications; /unread for the badge
     api/ingest/        Protected endpoint that runs news ingestion (and sends pending pushes)
     api/digest/        Protected endpoint that mails the weekly digest; /unsubscribe for one-click
   components/
-    feed/              Article card, actions bar, feed view, infinite-scroll list, breaking banner
+    article/           Threaded replies with delete and report
+    feed/              Article card, media (video, sensitive blur), actions bar, feed view, infinite-scroll list
+    profile/           Profile tabs and the edit-profile form
+    settings/          Settings rows, push and delete-account controls
     layout/            Sidebars, mobile nav (with the unread badge), sticky page header, search
     people/            Readers in lists
-    ui/                Avatar, verified badge, generated cover art, tabs, switch, …
+    ui/                Avatar, verified badge, generated cover art, tabs, switch, dialog, menu, …
   lib/
     data/              Data access: mock data or Supabase, same return types; paged feeds
     ingest/            RSS/Atom parsing, cleanup, trend detection and the ingestion run
@@ -192,7 +248,7 @@ src/
     mock/              Mock sources, articles, comments, trends, notifications
     supabase/          Browser / server / proxy / admin clients and database types
     store/             Client state: likes, follows, settings and unread notifications (account, or localStorage in demo mode)
-    actions/           Server Actions (auth, comments, reader activity, notifications, push, digest)
+    actions/           Server Actions (auth, account, comments, reader activity, notifications, push, digest)
   proxy.ts             Supabase session refresh
 supabase/              Migrations, starter feeds, cron template and demo seed
 ```
@@ -201,7 +257,7 @@ supabase/              Migrations, starter feeds, cron template and demo seed
 
 - Colors follow X's "Lights out" theme: true black `#000`, borders `#2f3336`, text `#e7e9ea`, accent `#1d9bf0`. Tokens live in `src/app/globals.css`.
 - Publishers get rounded-square avatars and gold checkmarks; people get round avatars and blue checks, as on X.
-- Stories without an `image_url`, or whose image fails to load, get generated mesh-gradient cover art per category (`src/components/ui/cover.tsx`). Real images from any HTTPS host are rendered with `next/image`.
+- Stories without an `image_url`, or whose image fails to load, get generated mesh-gradient cover art per category (`src/components/ui/cover.tsx`). Real images from any HTTPS host are rendered with `next/image`. Videos and the sensitive-content blur are handled in `src/components/feed/article-media.tsx`.
 - Counts that are zero (likes, views, …) are hidden, as on X, so real stories never show made-up numbers.
 - Responsive: bottom tab bar on phones, icon-only nav rail on tablets, full sidebar plus trends column on desktop.
 - The site name lives in `src/lib/site.ts`.

@@ -64,8 +64,8 @@ async function UserProfilePage({ params }: { params: Promise<{ handle: string }>
         avatar={<UserAvatar user={profile} size={134} />}
         actions={
           own ? (
-            <Link href="/profile" className={buttonClasses({ variant: "outline" })}>
-              Your profile
+            <Link href="/profile/edit" className={buttonClasses({ variant: "outline" })}>
+              Edit profile
             </Link>
           ) : (
             <FollowButton id={profile.id} list="people" name={profile.name} size="md" />
@@ -123,7 +123,7 @@ function UserCommentItem({ comment, profile }: { comment: UserComment; profile: 
             Replying to <span className="text-accent">@{comment.replyToHandle}</span>
           </p>
         ) : null}
-        <p className="mt-0.5 text-[15px] leading-5 whitespace-pre-wrap">{comment.body}</p>
+        <p className="mt-0.5 text-[15px] leading-5 break-words whitespace-pre-wrap">{comment.body}</p>
         {comment.article ? (
           <p className="mt-2 truncate text-[13px] text-muted">On “{comment.article.title}”</p>
         ) : null}

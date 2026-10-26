@@ -1,6 +1,8 @@
 import type { Article } from "../types";
 
-export type MockArticle = Omit<Article, "source" | "publishedAt"> & {
+export type MockArticle = Omit<Article, "source" | "publishedAt" | "videoUrl" | "isSensitive"> & {
+  videoUrl?: string;
+  isSensitive?: boolean;
   sourceId: string;
   /** Publication time relative to "now", so the mock feed always looks fresh. */
   minutesAgo: number;
@@ -521,5 +523,50 @@ export const mockArticles: MockArticle[] = [
     isBreaking: false,
     readTimeMinutes: 2,
     stats: { comments: 512, reposts: 3_760, likes: 29_100, views: 1_040_000 },
+  },
+  {
+    id: "art-025",
+    slug: "solar-storm-auroras-southern-skies",
+    sourceId: "src-orbit",
+    minutesAgo: 55,
+    title: "Strongest solar storm in two decades paints auroras across southern skies",
+    summary:
+      "Skywatchers far from the poles saw green and violet curtains overnight as a burst of solar wind reached Earth hours earlier than forecast.",
+    body: [
+      "A powerful burst of charged particles from the Sun reached Earth overnight, producing auroras visible far closer to the equator than usual.",
+      "Forecasters had expected the storm to arrive late on Wednesday, but the solar wind was faster than predicted, catching many photographers by surprise.",
+      "Grid operators and satellite companies reported no major disruptions. Another, weaker burst could bring a second night of displays.",
+    ],
+    imageUrl: null,
+    // Demo footage served from public/; real stories carry the feed's own video.
+    videoUrl: "/demo/aurora.mp4",
+    url: null,
+    category: "science",
+    tags: ["Aurora", "SolarStorm"],
+    isBreaking: false,
+    readTimeMinutes: 2,
+    stats: { comments: 241, reposts: 2_380, likes: 19_700, views: 860_000 },
+  },
+  {
+    id: "art-026",
+    slug: "wildfire-crews-contain-blaze-after-evacuations",
+    sourceId: "src-dispatch",
+    minutesAgo: 160,
+    title: "Wildfire crews contain hillside blaze after a night of evacuations",
+    summary:
+      "Warning: this report contains distressing images of the fire's aftermath. More than 4,000 residents were moved to shelters as wind-driven flames crossed two ridgelines.",
+    body: [
+      "Firefighters said on Thursday they had contained a wildfire that forced more than 4,000 residents from their homes overnight.",
+      "Strong winds pushed the flames across two ridgelines before crews, backed by water-dropping aircraft, held the fire at a highway.",
+      "Officials said several homes were destroyed and asked residents to wait for an all-clear before returning.",
+    ],
+    imageUrl: null,
+    url: null,
+    category: "world",
+    tags: ["Wildfire"],
+    isBreaking: false,
+    isSensitive: true,
+    readTimeMinutes: 3,
+    stats: { comments: 188, reposts: 1_540, likes: 6_900, views: 520_000 },
   },
 ];

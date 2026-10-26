@@ -27,6 +27,22 @@ describe("parseFeed", () => {
     expect(first.description).toContain("<p>The European parliament voted");
     // Video media is not an image.
     expect(second.imageUrl).toBeNull();
+    expect(second.videoUrl).toBe("https://img.example.com/clip.mp4");
+    expect(first.videoUrl).toBeNull();
+  });
+
+  it("picks a playable video and reads adult media ratings", () => {
+    const [floods, trial, budget, film] = parseFeed(fixture("media.xml")).items;
+    // The widest MP4 up to 1280 pixels; the HLS playlist can't play in a <video>.
+    expect(floods).toMatchObject({
+      videoUrl: "https://cdn.video.example.com/floods/1280.mp4",
+      imageUrl: "https://cdn.video.example.com/floods/poster.jpg",
+      ratedAdult: false,
+    });
+    expect(trial).toMatchObject({ videoUrl: "https://cdn.video.example.com/trial.webm", ratedAdult: true });
+    // Only an HLS playlist and an http MP4 (dropped later, when normalizing).
+    expect(budget).toMatchObject({ videoUrl: "http://cdn.video.example.com/budget.mp4", ratedAdult: false });
+    expect(film).toMatchObject({ videoUrl: null, ratedAdult: false });
   });
 
   it("reads Atom entries, preferring the alternate link", () => {

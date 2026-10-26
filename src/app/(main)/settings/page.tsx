@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/layout/page-header";
+import { DeleteAccount } from "@/components/settings/delete-account";
 import { SettingsRow, SettingsSection } from "@/components/settings/settings-primitives";
 import { SettingsView } from "@/components/settings/settings-view";
 import { UserAvatar } from "@/components/ui/avatar";
@@ -45,10 +46,13 @@ async function AccountSection() {
     <SettingsSection title="Your account" description="See information about your account.">
       <div className="flex items-center gap-3 px-4 py-3">
         <UserAvatar user={viewer} size={48} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-bold">{viewer.name}</p>
           <p className="truncate text-[15px] text-muted">@{viewer.handle}</p>
         </div>
+        <Link href="/profile/edit" className={buttonClasses({ variant: "outline", size: "sm" })}>
+          Edit profile
+        </Link>
       </div>
       <SettingsRow icon={UserRound} title="Display name" description={viewer.name} />
       <SettingsRow icon={AtSign} title="Username" description={`@${viewer.handle}`} />
@@ -64,16 +68,22 @@ async function AccountSection() {
           <SettingsRow
             icon={KeyRound}
             title="Password"
-            description="Change your password from the link in your sign-in email."
+            description="Choose a new password for signing in with your email."
+            control={
+              <Link href="/reset-password" className={buttonClasses({ variant: "outline", size: "sm" })}>
+                Change
+              </Link>
+            }
           />
           <form action={signOut}>
             <button
               type="submit"
-              className="flex w-full items-center gap-4 px-4 py-3 text-left text-[15px] text-live transition-colors hover:bg-live/10"
+              className="flex w-full items-center gap-4 px-4 py-3 text-left text-[15px] transition-colors hover:bg-white/[0.03]"
             >
               <LogOut className="size-5" /> Log out
             </button>
           </form>
+          <DeleteAccount handle={viewer.handle} />
         </>
       )}
     </SettingsSection>

@@ -47,10 +47,14 @@ export interface Article {
   /** Article body, one entry per paragraph. */
   body: string[];
   imageUrl: string | null;
+  /** A video for the story, played in the feed when the reader's autoplay setting is on. */
+  videoUrl: string | null;
   url: string | null;
   category: CategorySlug;
   tags: string[];
   isBreaking: boolean;
+  /** Graphic or distressing media, blurred while the reader's sensitive-content setting is on. */
+  isSensitive: boolean;
   readTimeMinutes: number;
   stats: ArticleStats;
   /**
@@ -96,6 +100,14 @@ export interface Comment {
   /** The comment this one replies to, if any, and its author's handle. */
   parentId: string | null;
   replyToHandle: string | null;
+  /** The comment that started this one's thread; null on that comment. */
+  rootId: string | null;
+  /**
+   * Set on a deleted reply, or one hidden after readers reported it, that
+   * others answered. It stays in its thread as a placeholder, without its
+   * text or author.
+   */
+  removed: "deleted" | "hidden" | null;
   /** When the like count was read; see Article.countedAt. Absent on demo data. */
   countedAt?: string;
   createdAt: string;

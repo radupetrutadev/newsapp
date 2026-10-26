@@ -109,6 +109,18 @@ describe("normalizeItem", () => {
     expect(row?.read_time_minutes).toBe(4);
   });
 
+  it("keeps HTTPS videos and flags sensitive media", () => {
+    const [floods, trial, budget, film] = items("media.xml").map((item) => normalizeItem(item, feed, NOW));
+    // A content warning in the description.
+    expect(floods).toMatchObject({ video_url: "https://cdn.video.example.com/floods/1280.mp4", is_sensitive: true });
+    // Rated adult by the feed.
+    expect(trial).toMatchObject({ video_url: "https://cdn.video.example.com/trial.webm", is_sensitive: true });
+    expect(budget).toMatchObject({ video_url: null, is_sensitive: false });
+    // "Graphic novel" and "disturbing, brilliant" aren't warnings.
+    expect(film).toMatchObject({ video_url: null, is_sensitive: false });
+    expect(normalizeItem(items("bbc-style.xml")[0], feed, NOW)).toMatchObject({ video_url: null, is_sensitive: false });
+  });
+
   it("decodes HTML in Atom titles and resolves relative Atom links", () => {
     const [first, second] = items("verge-style.atom");
     const atomFeed = feedConfig({ url: "https://gadgets.example.com/rss/index.xml", category: "tech" });

@@ -20,6 +20,7 @@ import { FeedSkeleton } from "@/components/ui/skeleton";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { categoryName } from "@/lib/categories";
 import { getArticle, getArticleSlugs, getComments, getRelatedArticles } from "@/lib/data";
+import { getViewerReports } from "@/lib/data/activity";
 import { getViewer } from "@/lib/data/viewer";
 import type { Article } from "@/lib/types";
 import { formatCount, hostname } from "@/lib/utils";
@@ -107,6 +108,7 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
 
         <ArticleMedia
           article={article}
+          controls
           priority
           sizes="(min-width: 640px) 568px, 100vw"
           className="mt-4 rounded-2xl border border-border"
@@ -197,12 +199,17 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
 async function Replies({ article }: { article: Article }) {
   // Replies are read fresh for each visit (see getComments).
   await connection();
-  const [comments, viewer] = await Promise.all([getComments(article.id), getViewer()]);
+  const [comments, viewer, reportedIds] = await Promise.all([
+    getComments(article.id),
+    getViewer(),
+    getViewerReports(article.id),
+  ]);
   return (
     <CommentThread
       articleId={article.id}
       sourceHandle={article.source.handle}
       comments={comments}
+      reportedIds={reportedIds}
       viewer={viewer}
     />
   );

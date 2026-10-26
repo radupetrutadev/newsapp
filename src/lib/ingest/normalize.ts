@@ -99,8 +99,8 @@ export function normalizeUrl(raw: string | null, base?: string): string | null {
   }
 }
 
-/** Only HTTPS images are kept, so pages never load mixed content. */
-export function normalizeImageUrl(raw: string | null, base: string): string | null {
+/** Only HTTPS images and videos are kept, so pages never load mixed content. */
+export function normalizeMediaUrl(raw: string | null, base: string): string | null {
   const url = normalizeUrl(raw ? decodeEntities(raw) : null, base);
   if (!url) return null;
   return url.startsWith("https://") ? url : null;
@@ -189,6 +189,15 @@ export function toTags(raw: string[]): string[] {
 
 const breakingPrefix = /^(?:breaking(?:\s+news)?)\s*[:\-–—|]\s*/i;
 
+// Feeds rarely rate their media, but headlines and standfirsts warn about it.
+const contentWarning =
+  /\b(?:graphic (?:content|images?|footage|videos?|scenes|warning)|(?:disturbing|distressing) (?:images?|footage|videos?|content|scenes)|viewer discretion)\b|\bwarning:\s*(?:this|graphic|distressing|disturbing)\b/i;
+
+/** Whether a story's media should be blurred for readers who hide sensitive content. */
+export function isSensitive(item: ParsedItem, title: string, summary: string): boolean {
+  return item.ratedAdult || contentWarning.test(title) || contentWarning.test(summary);
+}
+
 function readTime(content: string | null): number {
   if (!content) return 3;
   const words = htmlToText(content).split(" ").filter(Boolean).length;
@@ -220,20 +229,23 @@ export function normalizeItem(item: ParsedItem, feed: FeedConfig, now: Date): Ar
   if (isBreaking) title = title.replace(breakingPrefix, "");
 
   const image =
-    normalizeImageUrl(item.imageUrl, url) ??
-    normalizeImageUrl(firstImageInHtml(item.content ?? item.description), url);
+    normalizeMediaUrl(item.imageUrl, url) ??
+    normalizeMediaUrl(firstImageInHtml(item.content ?? item.description), url);
+  const summary = summarize(item.description ?? item.content, title);
 
   return {
     slug: `${slugify(title)}-${shortHash(url)}`,
     source_id: feed.sourceId,
     title,
-    summary: summarize(item.description ?? item.content, title),
+    summary,
     body: [],
     image_url: image,
+    video_url: normalizeMediaUrl(item.videoUrl, url),
     url,
     category: feed.category,
     tags: toTags(item.categories),
     is_breaking: isBreaking,
+    is_sensitive: isSensitive(item, title, summary),
     read_time_minutes: readTime(item.content),
     published_at: date.toISOString(),
   };

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/auth-forms";
+import { AuthNotice } from "@/components/auth/auth-notice";
 import { DemoNotice } from "@/components/auth/demo-notice";
 import { OAuthButtons, OrDivider } from "@/components/auth/oauth-buttons";
 import { site } from "@/lib/site";
@@ -20,7 +21,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 
       <div className="mt-6 w-full max-w-[320px] space-y-3">
         <Suspense>
-          <OAuthError searchParams={searchParams} />
+          <AuthNotice searchParams={searchParams} />
         </Suspense>
         <OAuthButtons />
         <OrDivider />
@@ -37,27 +38,5 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         </Link>
       </div>
     </>
-  );
-}
-
-// Only known codes are shown, so the URL can't inject arbitrary text.
-const errorMessages: Record<string, string> = {
-  demo: "Pulse is running in demo mode. Add your Supabase URL and key to .env.local to enable sign in.",
-  oauth: "We couldn't start that sign-in. Check the provider is enabled in Supabase and try again.",
-  callback: "We couldn't sign you in. The link may have expired — please try again.",
-};
-
-async function OAuthError({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
-  const { error } = await searchParams;
-  const message = errorMessages[String(Array.isArray(error) ? error[0] : error)];
-  if (!message) return null;
-
-  return (
-    <p
-      role="alert"
-      className="rounded-md border border-live/40 bg-live/10 px-3 py-2 text-[14px] text-[#ff6b75]"
-    >
-      {message}
-    </p>
   );
 }

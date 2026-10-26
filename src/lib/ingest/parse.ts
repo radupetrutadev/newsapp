@@ -11,6 +11,10 @@ export interface ParsedItem {
   content: string | null;
   /** Image declared through media:* or an image enclosure. */
   imageUrl: string | null;
+  /** A video browsers can play, declared through media:content or an enclosure. */
+  videoUrl: string | null;
+  /** The feed rates the item's media as adult (media:rating). */
+  ratedAdult: boolean;
   categories: string[];
 }
 
@@ -29,6 +33,7 @@ const arrayTags = new Set([
   "media:content",
   "media:thumbnail",
   "media:group",
+  "media:rating",
 ]);
 
 const parser = new XMLParser({
@@ -96,6 +101,64 @@ function declaredImage(item: Node): string | null {
   return null;
 }
 
+// MP4 and WebM play everywhere; HLS playlists and the rest need a player.
+const playableVideo = new Set(["video/mp4", "video/webm"]);
+/** Feeds offer several sizes; previews don't need more than this. */
+const VIDEO_MAX_WIDTH = 1280;
+
+function isPlayableVideo(url: string, type: string | null, medium: string | null): boolean {
+  if (type) return playableVideo.has(type.split(";")[0].trim().toLowerCase());
+  return medium === "video" && /\.(?:mp4|m4v|webm)(?:[?#]|$)/i.test(url);
+}
+
+/** Picks a playable video: the widest up to VIDEO_MAX_WIDTH, else the narrowest. */
+function declaredVideo(item: Node): string | null {
+  const groups = list(item["media:group"]).filter(isNode);
+  const candidates = [item, ...groups].flatMap((node) => list(node["media:content"]));
+
+  const videos: { url: string; width: number }[] = [];
+  for (const candidate of candidates) {
+    const url = attr(candidate, "url");
+    if (url && isPlayableVideo(url, attr(candidate, "type"), attr(candidate, "medium"))) {
+      videos.push({ url, width: Number(attr(candidate, "width") ?? 0) || 0 });
+    }
+  }
+  const fitting = videos.filter((video) => video.width <= VIDEO_MAX_WIDTH).sort((a, b) => b.width - a.width);
+  const best = fitting[0] ?? videos.sort((a, b) => a.width - b.width)[0];
+  if (best) return best.url;
+
+  for (const enclosure of list(item.enclosure)) {
+    const url = attr(enclosure, "url");
+    if (url && isPlayableVideo(url, attr(enclosure, "type"), null)) return url;
+  }
+  return null;
+}
+
+/**
+ * Media RSS ratings, on the item, a media:group or a media:content:
+ * <media:rating>adult</media:rating> (the default urn:simple scheme), or
+ * the film and TV schemes' adult ratings.
+ */
+function ratedAdult(item: Node): boolean {
+  const groups = list(item["media:group"]).filter(isNode);
+  const media = [item, ...groups].flatMap((node) => list(node["media:content"]).filter(isNode));
+  return [item, ...groups, ...media].some((node) =>
+    list(node["media:rating"]).some((rating) => {
+      const value = text(rating)?.toLowerCase();
+      switch (attr(rating, "scheme") ?? "urn:simple") {
+        case "urn:simple":
+          return value === "adult";
+        case "urn:mpaa":
+          return value === "r" || value === "nc-17";
+        case "urn:v-chip":
+          return value === "tv-ma";
+        default:
+          return false;
+      }
+    }),
+  );
+}
+
 function categoriesOf(item: Node): string[] {
   return list(item.category)
     .map((category) => attr(category, "label") ?? attr(category, "term") ?? text(category))
@@ -113,6 +176,8 @@ function rssItem(item: Node): ParsedItem {
     description: text(item.description),
     content: text(item["content:encoded"]),
     imageUrl: declaredImage(item),
+    videoUrl: declaredVideo(item),
+    ratedAdult: ratedAdult(item),
     categories: [
       ...categoriesOf(item),
       ...list(item["dc:subject"])
@@ -140,6 +205,8 @@ function atomEntry(entry: Node): ParsedItem {
     description: text(entry.summary),
     content: text(entry.content),
     imageUrl: declaredImage(entry),
+    videoUrl: declaredVideo(entry),
+    ratedAdult: ratedAdult(entry),
     categories: categoriesOf(entry),
   };
 }

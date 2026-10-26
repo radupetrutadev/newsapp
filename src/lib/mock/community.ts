@@ -25,9 +25,14 @@ export const mockUsers: UserProfile[] = [
   { id: "user-theo", handle: "theo_runs", name: "Theo Laurent", avatarUrl: null, bio: "", verified: false },
 ];
 
-export type MockComment = Omit<Comment, "author" | "createdAt" | "parentId" | "replyToHandle" | "countedAt"> & {
+export type MockComment = Omit<
+  Comment,
+  "author" | "createdAt" | "parentId" | "replyToHandle" | "rootId" | "removed" | "countedAt"
+> & {
   authorId: string;
   minutesAgo: number;
+  /** The comment this one answers. */
+  parentId?: string;
 };
 
 export const mockComments: MockComment[] = [
@@ -49,6 +54,12 @@ export const mockComments: MockComment[] = [
   { id: "c-016", articleId: "art-013", authorId: "user-priya", minutesAgo: 350, likesCount: 488, body: "A quiet red dwarf is the important detail. Flares are what usually ruin the habitability story for these systems." },
   { id: "c-017", articleId: "art-017", authorId: "user-ines", minutesAgo: 560, likesCount: 1_204, body: "Track 9 is already my song of the year. No notes." },
   { id: "c-018", articleId: "art-018", authorId: "user-jonah", minutesAgo: 620, likesCount: 211, body: "Measuring resident satisfaction alongside staff wellbeing is the right design. Hope they publish the raw data." },
+  // Replies
+  { id: "c-019", articleId: "art-001", authorId: "user-jonah", parentId: "c-001", minutesAgo: 4, likesCount: 36, body: "Public data only helps if someone is obliged to act on it. Who enforces?" },
+  { id: "c-020", articleId: "art-001", authorId: "user-priya", parentId: "c-019", minutesAgo: 3, likesCount: 58, body: "@jonahwrites The repair fund is conditional on fixing the leaks the satellites flag. That's the lever." },
+  { id: "c-021", articleId: "art-001", authorId: "user-lena", parentId: "c-001", minutesAgo: 2, likesCount: 12, body: "Weekly is a big deal too. Annual inventories were always years out of date." },
+  { id: "c-022", articleId: "art-002", authorId: "user-sam", parentId: "c-004", minutesAgo: 12, likesCount: 44, body: "What GPU are you on? Curious about tokens per second on the quantized build." },
+  { id: "c-023", articleId: "art-002", authorId: "user-marco", parentId: "c-022", minutesAgo: 10, likesCount: 19, body: "@samdoesdata A single 24 GB card. Fast enough that I stopped noticing." },
 ];
 
 export const mockTrends: Trend[] = [

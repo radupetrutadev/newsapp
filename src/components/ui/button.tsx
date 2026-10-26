@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "accent" | "outline" | "ghost" | "danger";
+type Variant = "primary" | "accent" | "outline" | "ghost" | "danger" | "destructive";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
@@ -10,6 +10,7 @@ const variants: Record<Variant, string> = {
   outline: "border border-[#536471] text-foreground hover:bg-white/10",
   ghost: "text-foreground hover:bg-white/10",
   danger: "border border-[#67070f] text-live hover:bg-live/10",
+  destructive: "bg-live text-white hover:bg-live/90",
 };
 
 const sizes: Record<Size, string> = {

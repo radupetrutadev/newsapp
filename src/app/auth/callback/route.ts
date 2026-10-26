@@ -1,17 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { authRedirects } from "../redirects";
 
 /**
- * OAuth and email-confirmation redirect target. Exchanges the one-time code
- * for a session cookie, then sends the user on to the feed.
+ * OAuth, email-confirmation and password-reset redirect target. Exchanges the
+ * one-time code for a session cookie, then sends the user on (`next`).
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = searchParams.get("next");
-  // Only allow same-site relative redirects.
-  const destination = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
+  const { destination, failure } = authRedirects(searchParams.get("next"));
 
   if (code && isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -19,5 +18,5 @@ export async function GET(request: NextRequest) {
     if (!error) return NextResponse.redirect(`${origin}${destination}`);
   }
 
-  return NextResponse.redirect(`${origin}/login?error=callback`);
+  return NextResponse.redirect(`${origin}${failure}`);
 }
