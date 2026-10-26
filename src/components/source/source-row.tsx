@@ -23,7 +23,7 @@ export function SourceRow({ source, showBio = false }: { source: Source; showBio
             </div>
             <div className="truncate text-[15px] text-muted">@{source.handle}</div>
           </div>
-          <FollowButton sourceId={source.id} name={source.name} className="relative" />
+          <FollowButton id={source.id} name={source.name} className="relative" />
         </div>
         {showBio ? (
           <p className="mt-1 text-[15px] leading-5 text-foreground/90">{source.description}</p>

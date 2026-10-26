@@ -8,7 +8,7 @@ import { site } from "@/lib/site";
 import { AccountMenu } from "./account-menu";
 import { NavLinks } from "./nav-links";
 
-export function LeftSidebar({ badges }: { badges: Record<string, number> }) {
+export function LeftSidebar() {
   return (
     <div className="sticky top-0 flex h-dvh flex-col justify-between px-2 pb-3 xl:w-[275px] xl:pr-6">
       <div className="flex flex-col items-center xl:items-stretch">
@@ -20,7 +20,7 @@ export function LeftSidebar({ badges }: { badges: Record<string, number> }) {
           <LogoMark className="size-8" />
         </Link>
 
-        <NavLinks badges={badges} />
+        <NavLinks />
 
         <Link
           href="/topics"

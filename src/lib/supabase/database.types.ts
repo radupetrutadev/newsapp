@@ -102,6 +102,7 @@ export type Database = {
           avatar_url: string | null;
           bio: string;
           verified: boolean;
+          followers_count: number;
           created_at: string;
         };
         Insert: {
@@ -111,6 +112,7 @@ export type Database = {
           avatar_url?: string | null;
           bio?: string;
           verified?: boolean;
+          followers_count?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
@@ -123,6 +125,7 @@ export type Database = {
           user_id: string;
           body: string;
           likes_count: number;
+          parent_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -131,6 +134,7 @@ export type Database = {
           user_id: string;
           body: string;
           likes_count?: number;
+          parent_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["comments"]["Insert"]>;
@@ -147,6 +151,13 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "comments";
             referencedColumns: ["id"];
           },
         ];
@@ -261,6 +272,65 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["user_settings"]["Insert"]>;
         Relationships: [];
       };
+      comment_likes: {
+        Row: { user_id: string; comment_id: string; created_at: string };
+        Insert: { user_id: string; comment_id: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["comment_likes"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "comment_likes_comment_id_fkey";
+            columns: ["comment_id"];
+            isOneToOne: false;
+            referencedRelation: "comments";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_follows: {
+        Row: { follower_id: string; followee_id: string; created_at: string };
+        Insert: { follower_id: string; followee_id: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["user_follows"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "user_follows_followee_id_fkey";
+            columns: ["followee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: string;
+          group_key: string | null;
+          comment_id: string | null;
+          article_id: string | null;
+          created_at: string;
+          updated_at: string;
+          read_at: string | null;
+          pushed_at: string | null;
+        };
+        // Written by triggers only.
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: { id: string; user_id: string; endpoint: string; p256dh: string; auth_key: string; created_at: string };
+        // Saved with save_push_subscription.
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      email_digests: {
+        Row: { user_id: string; week: string; sent_at: string };
+        Insert: { user_id: string; week: string; sent_at?: string };
+        Update: Partial<Database["public"]["Tables"]["email_digests"]["Insert"]>;
+        Relationships: [];
+      };
       feeds: {
         Row: {
           id: string;
@@ -337,6 +407,33 @@ export type Database = {
       topic_stats: {
         Args: { since: string };
         Returns: { category: string; stories: number; views: number }[];
+      };
+      // A JSON array of notifications as built by public.notification_json.
+      notifications_page: {
+        Args: {
+          page_size: number;
+          filter?: string;
+          before_at?: string | null;
+          before_id?: string | null;
+        };
+        Returns: Json;
+      };
+      mark_notifications_read: {
+        Args: { up_to: string };
+        Returns: undefined;
+      };
+      save_push_subscription: {
+        Args: { endpoint: string; p256dh: string; auth_key: string };
+        Returns: undefined;
+      };
+      // Like notifications_page, each with the reader's "user_id".
+      claim_push_notifications: {
+        Args: { max_count?: number };
+        Returns: Json;
+      };
+      claim_digest_recipients: {
+        Args: { digest_week: string; max_count?: number };
+        Returns: { user_id: string; email: string; display_name: string }[];
       };
     };
     Enums: { [_ in never]: never };

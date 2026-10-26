@@ -3,10 +3,18 @@ import type { Settings } from "@/lib/settings";
 /*
  * Reader activity shared by the server (actions, loading) and the client
  * store. Every list holds ids: articles for liked/reposted/bookmarked,
- * sources for following, category slugs for topics.
+ * sources for following, category slugs for topics, comments for
+ * likedComments and readers for people.
  */
 
-export type EngagementList = "liked" | "reposted" | "bookmarked" | "following" | "topics";
+export type EngagementList =
+  | "liked"
+  | "reposted"
+  | "bookmarked"
+  | "following"
+  | "topics"
+  | "likedComments"
+  | "people";
 
 export const engagementLists: EngagementList[] = [
   "liked",
@@ -14,6 +22,8 @@ export const engagementLists: EngagementList[] = [
   "bookmarked",
   "following",
   "topics",
+  "likedComments",
+  "people",
 ];
 
 /** An item in one of the reader's lists and when it was added. */
@@ -33,6 +43,7 @@ export type AccountActivity =
       /** Newest first. */
       lists: Record<EngagementList, ActivityItem[]>;
       settings: Settings;
+      unreadNotifications: number;
     };
 
 /** An item switched on or off. `at` is server time in ms, or null while the request is in flight. */

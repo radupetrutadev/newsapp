@@ -1,28 +1,21 @@
 "use client";
 
-import {
-  AtSign,
-  BellOff,
-  Heart,
-  MessageCircle,
-  Repeat2,
-  Sparkles,
-  UserPlus,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
+import { AtSign, BellOff, Heart, MessageCircle, UserPlus, Zap, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { Avatar } from "@/components/ui/avatar";
+import { useCallback, useEffect, useState } from "react";
+import { SourceAvatar, UserAvatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PagedListFooter, usePagedList, type Page } from "@/components/ui/paged-list";
+import { ArticleSkeleton, FeedSkeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { TimeAgo } from "@/components/ui/time-ago";
-import type { AppNotification, NotificationKind } from "@/lib/types";
+import type { NotificationsPage } from "@/lib/data/notifications";
+import type { NotificationFilter } from "@/lib/notifications";
+import { markNotificationsSeen } from "@/lib/store/notifications";
+import type { AppNotification, NotificationActor, NotificationKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | "breaking" | "mentions";
-
-const tabs: { id: Filter; label: string }[] = [
+const tabs: { id: NotificationFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "breaking", label: "Breaking" },
   { id: "mentions", label: "Mentions" },
@@ -31,44 +24,85 @@ const tabs: { id: Filter; label: string }[] = [
 const kinds: Record<NotificationKind, { icon: LucideIcon; className: string }> = {
   breaking: { icon: Zap, className: "text-live fill-live" },
   like: { icon: Heart, className: "text-like fill-like" },
-  repost: { icon: Repeat2, className: "text-repost" },
   follow: { icon: UserPlus, className: "text-accent fill-accent" },
   reply: { icon: MessageCircle, className: "text-accent" },
   mention: { icon: AtSign, className: "text-accent" },
-  digest: { icon: Sparkles, className: "text-[#a78bfa] fill-[#a78bfa]" },
 };
 
-function matches(filter: Filter, kind: NotificationKind) {
-  if (filter === "breaking") return kind === "breaking";
-  if (filter === "mentions") return kind === "mention" || kind === "reply";
-  return true;
+async function fetchNotifications(filter: NotificationFilter, cursor: string | null): Promise<Page<AppNotification>> {
+  const params = new URLSearchParams({ filter });
+  if (cursor) params.set("cursor", cursor);
+  const response = await fetch(`/api/notifications?${params}`, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Couldn't load notifications: HTTP ${response.status}`);
+  const page = (await response.json()) as NotificationsPage;
+  return { items: page.notifications, next: page.next };
 }
 
-export function NotificationsView({ notifications }: { notifications: AppNotification[] }) {
-  const [filter, setFilter] = useState<Filter>("all");
-  const visible = notifications.filter((notification) => matches(filter, notification.kind));
+/** The reader's notifications, with the first page of "All" from the server. */
+export function NotificationsView({ initial }: { initial: NotificationsPage }) {
+  const [filter, setFilter] = useState<NotificationFilter>("all");
+
+  // Opening the page reads what it shows; anything newer stays unread.
+  useEffect(() => {
+    markNotificationsSeen(initial.newestAt ?? undefined);
+  }, [initial]);
 
   return (
     <>
       <Tabs tabs={tabs} value={filter} onChange={setFilter} />
-      {visible.length === 0 ? (
-        <EmptyState
-          icon={BellOff}
-          title="Nothing to see here — yet"
-          description={
-            filter === "mentions"
-              ? "When someone mentions you or replies to your comments, you'll find it here."
-              : "Breaking alerts from the sources and topics you follow will show up here."
-          }
-        />
-      ) : (
-        <ul>
-          {visible.map((notification) => (
-            <NotificationItem key={notification.id} notification={notification} />
-          ))}
-        </ul>
-      )}
+      <NotificationList
+        key={filter}
+        filter={filter}
+        initial={filter === "all" ? { items: initial.notifications, next: initial.next } : null}
+      />
     </>
+  );
+}
+
+function NotificationList({
+  filter,
+  initial,
+}: {
+  filter: NotificationFilter;
+  initial: Page<AppNotification> | null;
+}) {
+  const load = useCallback((cursor: string | null) => fetchNotifications(filter, cursor), [filter]);
+  const list = usePagedList(load, initial);
+
+  if (list.next === undefined && !list.failed) return <FeedSkeleton count={3} />;
+  if (list.items.length === 0 && list.next === null) {
+    return (
+      <EmptyState
+        icon={BellOff}
+        title="Nothing to see here — yet"
+        description={
+          filter === "mentions"
+            ? "When someone mentions you or replies to your comments, you'll find it here."
+            : filter === "breaking"
+              ? "Breaking alerts from the sources and topics you follow will show up here."
+              : "Replies, likes, new followers and breaking news from the sources and topics you follow show up here."
+        }
+      />
+    );
+  }
+
+  return (
+    <>
+      <ul>
+        {list.items.map((notification) => (
+          <NotificationItem key={notification.id} notification={notification} />
+        ))}
+      </ul>
+      <PagedListFooter list={list} noun="notifications" placeholder={<ArticleSkeleton />} />
+    </>
+  );
+}
+
+function ActorAvatar({ actor }: { actor: NotificationActor }) {
+  return actor.type === "source" ? (
+    <SourceAvatar source={actor} size={32} />
+  ) : (
+    <UserAvatar user={actor} size={32} />
   );
 }
 
@@ -91,23 +125,13 @@ function NotificationItem({ notification }: { notification: AppNotification }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {notification.actors.slice(0, 6).map((actor) => (
-              <Avatar
-                key={actor.handle}
-                name={actor.name}
-                size={32}
-                shape={notification.kind === "breaking" || notification.kind === "digest" ? "square" : "circle"}
-                colors={[actor.color, "#0f1419"]}
-              />
+              <ActorAvatar key={`${actor.type}:${actor.handle}`} actor={actor} />
             ))}
-            <TimeAgo iso={notification.createdAt} className="ml-auto self-start text-[13px] text-muted" />
+            <TimeAgo iso={notification.updatedAt} className="ml-auto self-start text-[13px] text-muted" />
           </div>
-          <p className={cn("mt-2 text-[15px] leading-5", breaking && "font-bold")}>
-            {notification.text}
-          </p>
+          <p className={cn("mt-2 text-[15px] leading-5", breaking && "font-bold")}>{notification.text}</p>
           {notification.preview ? (
-            <p className="mt-1 line-clamp-2 text-[15px] leading-5 text-muted">
-              {notification.preview}
-            </p>
+            <p className="mt-1 line-clamp-2 text-[15px] leading-5 text-muted">{notification.preview}</p>
           ) : null}
         </div>
         {notification.unread ? (

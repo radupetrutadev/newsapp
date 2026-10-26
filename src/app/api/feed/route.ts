@@ -6,7 +6,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 /**
  * The next page of a feed as the reader scrolls: GET /api/feed?feed=…&cursor=…
  * with the query string from `feedParams` (src/lib/feeds.ts). Answers
- * { articles, next } like getFeedPage.
+ * { articles, next } like getFeedPage. `fresh=1` skips the cache for the
+ * first page, after the reader asked for new stories.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -14,7 +15,9 @@ export async function GET(request: NextRequest) {
   if (!feed) return Response.json({ error: "Unknown feed." }, { status: 400 });
 
   try {
-    const page = await getFeedPage(feed, params.get("cursor"), localLists(params));
+    const page = await getFeedPage(feed, params.get("cursor"), localLists(params), {
+      fresh: params.get("fresh") === "1",
+    });
     // "For you" and "Following" depend on who's asking.
     return Response.json(page, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {

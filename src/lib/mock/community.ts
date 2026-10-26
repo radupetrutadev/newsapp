@@ -1,4 +1,5 @@
-import type { AppNotification, Comment, Trend, UserProfile, Viewer } from "../types";
+import type { NotificationJson } from "../notifications";
+import type { Comment, Trend, UserProfile, Viewer } from "../types";
 
 export const demoViewer: Viewer = {
   id: "user-demo",
@@ -24,7 +25,7 @@ export const mockUsers: UserProfile[] = [
   { id: "user-theo", handle: "theo_runs", name: "Theo Laurent", avatarUrl: null, bio: "", verified: false },
 ];
 
-export type MockComment = Omit<Comment, "author" | "createdAt"> & {
+export type MockComment = Omit<Comment, "author" | "createdAt" | "parentId" | "replyToHandle" | "countedAt"> & {
   authorId: string;
   minutesAgo: number;
 };
@@ -61,95 +62,92 @@ export const mockTrends: Trend[] = [
   { id: "t-8", context: "Trending in World", topic: "High-Speed Rail", postsCount: 4, category: "world" },
 ];
 
-export type MockNotification = Omit<AppNotification, "createdAt"> & { minutesAgo: number };
+/** Shaped like public.notification_json rows, so demo mode words them the same way. */
+export type MockNotification = Omit<NotificationJson, "created_at" | "updated_at"> & { minutesAgo: number };
+
+const actor = (handle: string, name: string) => ({ handle, display_name: name, avatar_url: null });
 
 export const mockNotifications: MockNotification[] = [
   {
     id: "n-001",
     kind: "breaking",
-    actors: [{ name: "Pulse Dispatch", handle: "pulsedispatch", color: "#1d9bf0" }],
-    text: "Breaking: Climate summit reaches last-minute deal to cut methane emissions 40% by 2035",
-    preview: null,
-    href: "/article/climate-summit-methane-deal",
     minutesAgo: 8,
     unread: true,
+    actors_count: 0,
+    actors: [],
+    comment: null,
+    article: {
+      slug: "climate-summit-methane-deal",
+      title: "Climate summit reaches last-minute deal to cut methane emissions 40% by 2035",
+    },
+    source: { handle: "pulsedispatch", name: "Pulse Dispatch", color: "#1d9bf0", logo_url: null },
   },
   {
     id: "n-002",
     kind: "like",
-    actors: [
-      { name: "Priya N.", handle: "priyaresearch", color: "#a855f7" },
-      { name: "Sam Okafor", handle: "samdoesdata", color: "#f59e0b" },
-      { name: "Ava Chen", handle: "avachen", color: "#06b6d4" },
-    ],
-    text: "Priya N. and 24 others liked your reply",
-    preview: "Storage is going to be the story of the next five years, not generation.",
-    href: "/article/solar-overtakes-coal-global-electricity",
     minutesAgo: 34,
     unread: true,
+    actors_count: 25,
+    actors: [actor("priyaresearch", "Priya N."), actor("samdoesdata", "Sam Okafor"), actor("avachen", "Ava Chen")],
+    comment: { id: "c-demo-1", body: "Storage is going to be the story of the next five years, not generation." },
+    article: {
+      slug: "solar-overtakes-coal-global-electricity",
+      title: "Solar overtakes coal in global electricity generation for the first time",
+    },
+    source: null,
   },
   {
     id: "n-003",
     kind: "reply",
-    actors: [{ name: "Marco Silva", handle: "marcobuilds", color: "#10b981" }],
-    text: "Marco Silva replied to you",
-    preview: "Agreed — and the quantized build makes it practical for small teams too.",
-    href: "/article/open-source-model-matches-proprietary-ai",
     minutesAgo: 58,
     unread: true,
+    actors_count: 1,
+    actors: [actor("marcobuilds", "Marco Silva")],
+    comment: { id: "c-demo-2", body: "Agreed — and the quantized build makes it practical for small teams too." },
+    article: {
+      slug: "open-source-model-matches-proprietary-ai",
+      title: "Open-source AI model matches top proprietary systems on reasoning benchmarks",
+    },
+    source: null,
   },
   {
     id: "n-004",
-    kind: "digest",
-    actors: [{ name: "Pulse", handle: "pulse", color: "#1d9bf0" }],
-    text: "Your morning brief is ready: 8 stories picked for you across Technology, Science and Climate.",
-    preview: null,
-    href: "/",
-    minutesAgo: 180,
+    kind: "follow",
+    minutesAgo: 240,
     unread: false,
+    actors_count: 2,
+    actors: [actor("lena_k", "Lena Kowalski"), actor("theo_runs", "Theo Laurent")],
+    comment: null,
+    article: null,
+    source: null,
   },
   {
     id: "n-005",
-    kind: "follow",
-    actors: [
-      { name: "Lena Kowalski", handle: "lena_k", color: "#f43f5e" },
-      { name: "Theo Laurent", handle: "theo_runs", color: "#f97316" },
-    ],
-    text: "Lena Kowalski and Theo Laurent followed you",
-    preview: null,
-    href: "/profile",
-    minutesAgo: 240,
+    kind: "breaking",
+    minutesAgo: 390,
     unread: false,
+    actors_count: 0,
+    actors: [],
+    comment: null,
+    article: {
+      slug: "earth-sized-planet-habitable-zone",
+      title: "Astronomers spot an Earth-sized planet in the habitable zone 40 light-years away",
+    },
+    source: { handle: "orbitweekly", name: "Orbit Weekly", color: "#a855f7", logo_url: null },
   },
   {
     id: "n-006",
     kind: "mention",
-    actors: [{ name: "Jonah Brooks", handle: "jonahwrites", color: "#8b5cf6" }],
-    text: "Jonah Brooks mentioned you",
-    preview: "@you called this one last week. Four-day week pilots are going municipal.",
-    href: "/article/cities-trial-four-day-work-week",
     minutesAgo: 410,
     unread: false,
-  },
-  {
-    id: "n-007",
-    kind: "repost",
-    actors: [{ name: "Inés García", handle: "inesgarcia", color: "#ec4899" }],
-    text: "Inés García reposted a story you shared",
-    preview: "Surprise album drop sends streaming platforms into overdrive",
-    href: "/article/surprise-album-drop-streaming",
-    minutesAgo: 720,
-    unread: false,
-  },
-  {
-    id: "n-008",
-    kind: "digest",
-    actors: [{ name: "Orbit Weekly", handle: "orbitweekly", color: "#a855f7" }],
-    text: "New from Orbit Weekly: Astronomers spot an Earth-sized planet in the habitable zone 40 light-years away",
-    preview: null,
-    href: "/article/earth-sized-planet-habitable-zone",
-    minutesAgo: 390,
-    unread: false,
+    actors_count: 1,
+    actors: [actor("jonahwrites", "Jonah Brooks")],
+    comment: { id: "c-demo-3", body: "@you called this one last week. Four-day week pilots are going municipal." },
+    article: {
+      slug: "cities-trial-four-day-work-week",
+      title: "City councils vote to trial a four-day work week for municipal staff",
+    },
+    source: null,
   },
 ];
 

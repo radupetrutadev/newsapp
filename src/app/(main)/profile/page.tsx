@@ -11,7 +11,8 @@ import { buttonClasses } from "@/components/ui/button";
 import { Cover } from "@/components/ui/cover";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getLatestArticles, getSources } from "@/lib/data";
-import { getViewerArticles } from "@/lib/data/activity";
+import { getViewerArticles, getViewerPeople } from "@/lib/data/activity";
+import { mockUsers } from "@/lib/mock/community";
 import { getViewer } from "@/lib/data/viewer";
 import type { Article, Source } from "@/lib/types";
 import { formatCount, formatMonthYear } from "@/lib/utils";
@@ -29,10 +30,11 @@ export default async function ProfilePage() {
 }
 
 async function Profile({ articles, sources }: { articles: Article[]; sources: Source[] }) {
-  const [viewer, liked, reposted] = await Promise.all([
+  const [viewer, liked, reposted, people] = await Promise.all([
     getViewer(),
     getViewerArticles("liked"),
     getViewerArticles("reposted"),
+    getViewerPeople(),
   ]);
 
   if (!viewer) {
@@ -71,7 +73,7 @@ async function Profile({ articles, sources }: { articles: Article[]; sources: So
         meta={[{ icon: CalendarDays, content: `Joined ${formatMonthYear(viewer.joinedAt)}` }]}
         stats={[
           { label: "Following", value: <FollowingCount /> },
-          { label: "Followers", value: formatCount(viewer.followersCount) },
+          { label: viewer.followersCount === 1 ? "Follower" : "Followers", value: formatCount(viewer.followersCount) },
         ]}
       />
       {viewer.isDemo ? (
@@ -88,6 +90,8 @@ async function Profile({ articles, sources }: { articles: Article[]; sources: So
       <ProfileTabs
         articles={[...(liked ?? []), ...(reposted ?? []), ...articles]}
         sources={sources}
+        // Demo follows live in the browser, so any demo reader may be among them.
+        people={people ?? mockUsers}
       />
     </>
   );

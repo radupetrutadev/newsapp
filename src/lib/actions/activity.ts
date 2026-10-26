@@ -2,6 +2,7 @@
 
 import { isUuid, type EngagementList } from "@/lib/activity";
 import { getCategory } from "@/lib/categories";
+import { sendPushSoon } from "@/lib/push/send";
 import { settingsColumns, type Settings } from "@/lib/settings";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Database } from "@/lib/supabase/database.types";
@@ -29,9 +30,15 @@ function done(error: { message: string } | null, what: string): ActivityResult {
   return FAILED;
 }
 
+/** Likes on comments and new followers notify someone; push them now. */
+function notified(result: ActivityResult, on: boolean): ActivityResult {
+  if (result.ok && on) sendPushSoon();
+  return result;
+}
+
 const articleTables = { liked: "likes", reposted: "reposts", bookmarked: "bookmarks" } as const;
 
-/** Turns one like, repost, bookmark or follow on or off for the signed-in reader. */
+/** Turns one like, repost, bookmark or follow (of a source, topic or person) on or off for the signed-in reader. */
 export async function setActivity(
   list: EngagementList,
   id: string,
@@ -72,6 +79,27 @@ export async function setActivity(
             .upsert({ user_id: userId, category: id }, { onConflict: "user_id,category", ignoreDuplicates: true })
         : await supabase.from("topic_follows").delete().eq("user_id", userId).eq("category", id);
       return done(error, list);
+    }
+    case "likedComments": {
+      if (!isUuid(id)) return INVALID;
+      const { error } = on
+        ? await supabase
+            .from("comment_likes")
+            .upsert({ user_id: userId, comment_id: id }, { onConflict: "user_id,comment_id", ignoreDuplicates: true })
+        : await supabase.from("comment_likes").delete().eq("user_id", userId).eq("comment_id", id);
+      return notified(done(error, list), on);
+    }
+    case "people": {
+      if (!isUuid(id) || id === userId) return INVALID;
+      const { error } = on
+        ? await supabase
+            .from("user_follows")
+            .upsert(
+              { follower_id: userId, followee_id: id },
+              { onConflict: "follower_id,followee_id", ignoreDuplicates: true },
+            )
+        : await supabase.from("user_follows").delete().eq("follower_id", userId).eq("followee_id", id);
+      return notified(done(error, list), on);
     }
     default:
       return INVALID;

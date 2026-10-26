@@ -1,8 +1,9 @@
-import { timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import type { NextRequest } from "next/server";
+import { rejectUnlessCron } from "@/lib/cron";
 import { runIngest } from "@/lib/ingest/run";
 import { createSupabaseIngestStore } from "@/lib/ingest/supabase-store";
+import { deliverPush, type PushReport } from "@/lib/push/send";
 import { site } from "@/lib/site";
 import { isAdminConfigured } from "@/lib/supabase/admin";
 
@@ -23,13 +24,8 @@ export async function POST(request: NextRequest) {
 }
 
 async function ingest(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return Response.json({ error: "CRON_SECRET is not set." }, { status: 503 });
-  }
-  if (!isAuthorized(request.headers.get("authorization"), secret)) {
-    return Response.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const rejected = rejectUnlessCron(request);
+  if (rejected) return rejected;
   if (!isAdminConfigured()) {
     return Response.json(
       { error: "Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY to enable ingestion." },
@@ -45,11 +41,15 @@ async function ingest(request: NextRequest) {
   if (report.added > 0) revalidateTag("articles", "max");
   revalidateTag("trends", "max");
 
-  return Response.json(report);
-}
+  // Breaking stories just stored notify their followers; this also sends
+  // anything an earlier delivery missed.
+  let push: PushReport | { error: string };
+  try {
+    push = await deliverPush();
+  } catch (error) {
+    console.error(error);
+    push = { error: "Push delivery failed; see the logs." };
+  }
 
-function isAuthorized(header: string | null, secret: string): boolean {
-  const expected = Buffer.from(`Bearer ${secret}`);
-  const received = Buffer.from(header ?? "");
-  return received.length === expected.length && timingSafeEqual(received, expected);
+  return Response.json({ ...report, push });
 }

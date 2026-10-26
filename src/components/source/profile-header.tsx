@@ -27,7 +27,8 @@ export function ProfileHeader({
   handle: string;
   bio?: ReactNode;
   meta: ProfileMeta[];
-  stats: { label: string; value: ReactNode }[];
+  /** `key` is needed when the label isn't a plain string. */
+  stats: { label: ReactNode; value: ReactNode; key?: string }[];
 }) {
   return (
     <section>
@@ -60,7 +61,7 @@ export function ProfileHeader({
 
         <div className="mt-3 flex gap-5 text-[15px]">
           {stats.map((stat) => (
-            <span key={stat.label} className="text-muted">
+            <span key={stat.key ?? String(stat.label)} className="text-muted">
               <span className="font-bold text-foreground">{stat.value}</span> {stat.label}
             </span>
           ))}

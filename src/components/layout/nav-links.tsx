@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUnreadCount } from "@/lib/store/notifications";
 import { cn } from "@/lib/utils";
-import { isActivePath, navItems } from "./nav-items";
+import { badgeLabel, isActivePath, navItems } from "./nav-items";
 
-export function NavLinks({ badges = {} }: { badges?: Record<string, number> }) {
+export function NavLinks() {
   const pathname = usePathname();
+  const badges: Record<string, number> = { "/notifications": useUnreadCount() };
 
   return (
     <nav aria-label="Primary" className="flex flex-col items-center gap-0.5 xl:items-stretch">
@@ -17,6 +19,7 @@ export function NavLinks({ badges = {} }: { badges?: Record<string, number> }) {
           <Link
             key={href}
             href={href}
+            aria-label={badge ? `${label}, ${badge} unread` : label}
             aria-current={active ? "page" : undefined}
             className="group flex py-[3px] outline-none"
           >
@@ -27,8 +30,11 @@ export function NavLinks({ badges = {} }: { badges?: Record<string, number> }) {
                   strokeWidth={active ? 2.6 : 1.9}
                 />
                 {badge ? (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-black bg-accent px-1 text-[11px] font-bold text-white">
-                    {badge}
+                  <span
+                    aria-hidden
+                    className="absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-black bg-accent px-1 text-[11px] font-bold text-white"
+                  >
+                    {badgeLabel(badge)}
                   </span>
                 ) : null}
               </span>

@@ -1,7 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { isUuid } from "@/lib/activity";
 import { categoryName } from "@/lib/categories";
-import type { FeedPage, FeedSpec } from "@/lib/feeds";
+import { isLiveFeed, type FeedPage, type FeedSpec } from "@/lib/feeds";
 import { storyRank } from "@/lib/ranking";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient, createPublicClient } from "@/lib/supabase/server";
@@ -31,35 +31,82 @@ export interface LocalLists {
   topics: string[];
 }
 
+/**
+ * One page of a feed. `fresh` skips the cache for the first page, so the
+ * reader sees new stories the moment they asked for them.
+ */
 export async function getFeedPage(
   feed: FeedSpec,
   cursor: string | null,
   local: LocalLists = { sources: [], topics: [] },
+  { fresh = false }: { fresh?: boolean } = {},
 ): Promise<FeedPage> {
   if (!isSupabaseConfigured()) return demoPage(feed, decodeCursor(cursor, isOffsetCursor), local);
+  const uncached = fresh && cursor === null;
 
   switch (feed.kind) {
-    case "for-you":
-      return rankedPage(await viewerTopics(), feed.category, decodeCursor(cursor, isOffsetCursor));
+    case "for-you": {
+      const topics = await viewerTopics();
+      const offset = decodeCursor<OffsetCursor>(cursor, isOffsetCursor);
+      return uncached ? queryRanked(topics, feed.category, offset) : rankedPage(topics, feed.category, offset);
+    }
     case "following":
       return followingPage(feed.category, decodeCursor(cursor, isAfterCursor));
-    case "topic":
-      return latestPage({ category: feed.category }, decodeCursor(cursor, isAfterCursor));
-    case "source":
+    case "topic": {
+      const after = decodeCursor<AfterCursor>(cursor, isAfterCursor);
+      return uncached ? queryLatest({ category: feed.category }, after) : latestPage({ category: feed.category }, after);
+    }
+    case "source": {
       if (!isUuid(feed.sourceId)) throw new InvalidFeedError("Unknown source.");
-      return feed.order === "top"
-        ? topPage(feed.sourceId, decodeCursor(cursor, isOffsetCursor))
-        : latestPage({ sourceId: feed.sourceId }, decodeCursor(cursor, isAfterCursor));
+      if (feed.order === "top") return topPage(feed.sourceId, decodeCursor(cursor, isOffsetCursor));
+      const after = decodeCursor<AfterCursor>(cursor, isAfterCursor);
+      return uncached ? queryLatest({ sourceId: feed.sourceId }, after) : latestPage({ sourceId: feed.sourceId }, after);
+    }
     case "search":
       return searchPage(feed.query, decodeCursor(cursor, isOffsetCursor));
   }
+}
+
+/**
+ * How many stories in a live feed (see isLiveFeed) were published after
+ * `since`, for the "new stories" button. Always 0 in demo mode, whose
+ * stories don't change.
+ */
+export async function countNewStories(feed: FeedSpec, since: string): Promise<number> {
+  if (!TIMESTAMP.test(since)) throw new InvalidFeedError("Invalid time.");
+  if (!isLiveFeed(feed)) throw new InvalidFeedError("This feed doesn't update.");
+  if (!isSupabaseConfigured()) return 0;
+
+  let sourceIds: string[] | null = null;
+  if (feed.kind === "following") {
+    const { data, error } = await (await createClient()).from("follows").select("source_id");
+    if (error) fail("followed sources", error);
+    if (data.length === 0) return 0;
+    sourceIds = data.map((row) => row.source_id);
+  }
+
+  let query = createPublicClient()
+    .from("articles")
+    .select("id", { count: "exact", head: true })
+    .gt("published_at", since)
+    .lte("published_at", new Date().toISOString());
+  if (sourceIds) query = query.in("source_id", sourceIds);
+  if (feed.kind === "source") {
+    if (!isUuid(feed.sourceId)) throw new InvalidFeedError("Unknown source.");
+    query = query.eq("source_id", feed.sourceId);
+  } else if (feed.kind !== "search" && feed.category) {
+    query = query.eq("category", feed.category);
+  }
+  const { count, error } = await query;
+  if (error) fail("new stories", error);
+  return count ?? 0;
 }
 
 // ---------------------------------------------------------------------------
 // Cursors: where the next page starts. The browser gets them as opaque strings.
 
 /** Newest-first feeds continue after the last story shown. */
-interface AfterCursor {
+export interface AfterCursor {
   at: string;
   id: string;
 }
@@ -75,7 +122,7 @@ const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:
 const MAX_OFFSET = 2_000;
 
 // Both values end up in a PostgREST filter, so only exact formats pass.
-const isAfterCursor = (value: Record<string, unknown>) =>
+export const isAfterCursor = (value: Record<string, unknown>) =>
   typeof value.at === "string" && TIMESTAMP.test(value.at) && isUuid(value.id);
 
 const isOffsetCursor = (value: Record<string, unknown>) =>
@@ -85,11 +132,11 @@ const isOffsetCursor = (value: Record<string, unknown>) =>
   (value.offset as number) >= 0 &&
   (value.offset as number) <= MAX_OFFSET;
 
-function encodeCursor(cursor: AfterCursor | OffsetCursor): string {
+export function encodeCursor(cursor: AfterCursor | OffsetCursor): string {
   return Buffer.from(JSON.stringify(cursor)).toString("base64url");
 }
 
-function decodeCursor<T extends AfterCursor | OffsetCursor>(
+export function decodeCursor<T extends AfterCursor | OffsetCursor>(
   raw: string | null,
   isValid: (value: Record<string, unknown>) => boolean,
 ): T | null {
@@ -152,7 +199,14 @@ async function rankedPage(
   "use cache";
   cacheLife("minutes");
   cacheTag("articles");
+  return queryRanked(topics, category, cursor);
+}
 
+async function queryRanked(
+  topics: string[],
+  category: CategorySlug | null,
+  cursor: OffsetCursor | null,
+): Promise<FeedPage> {
   const asOf = cursor?.asOf ?? new Date().toISOString();
   const offset = cursor?.offset ?? 0;
   const { data, error } = await createPublicClient().rpc("for_you_feed", {
@@ -190,7 +244,13 @@ async function latestPage(
   "use cache";
   cacheLife("minutes");
   cacheTag("articles");
+  return queryLatest(filter, cursor);
+}
 
+async function queryLatest(
+  filter: { category: CategorySlug } | { sourceId: string },
+  cursor: AfterCursor | null,
+): Promise<FeedPage> {
   const countedAt = new Date().toISOString();
   let query = createPublicClient().from("articles").select(ARTICLE_SELECT);
   query = "category" in filter ? query.eq("category", filter.category) : query.eq("source_id", filter.sourceId);

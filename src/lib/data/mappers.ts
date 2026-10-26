@@ -1,5 +1,5 @@
 import type { Row } from "@/lib/supabase/database.types";
-import type { Article, CategorySlug, Comment, Source, Trend, UserProfile } from "@/lib/types";
+import type { Article, CategorySlug, Comment, PublicProfile, Source, Trend, UserProfile } from "@/lib/types";
 
 /**
  * Articles with their publisher embedded. Columns are listed so the search
@@ -12,7 +12,19 @@ export const ARTICLE_SELECT = `
 `;
 
 export type ArticleRow = Omit<Row<"articles">, "search_vector"> & { source: Row<"sources"> | null };
-export type CommentRow = Row<"comments"> & { author: Row<"profiles"> | null };
+
+/**
+ * Comments with their author and the handle of the person they reply to.
+ * comment_likes also links comments and profiles, so the author is named by
+ * its foreign key.
+ */
+export const COMMENT_SELECT = "*, author:profiles!user_id(*), parent:parent_id(author:profiles!user_id(handle))";
+
+export type ProfileRow = Row<"profiles">;
+export type CommentRow = Row<"comments"> & {
+  author: ProfileRow | null;
+  parent: { author: { handle: string } | null } | null;
+};
 
 export function fail(what: string, error: { message: string }): never {
   throw new Error(`Supabase: failed to load ${what}: ${error.message}`);
@@ -61,7 +73,7 @@ export function mapArticle(row: ArticleRow, countedAt: string): Article {
   };
 }
 
-export function mapProfile(row: Row<"profiles">): UserProfile {
+export function mapProfile(row: ProfileRow): UserProfile {
   return {
     id: row.id,
     handle: row.handle,
@@ -81,13 +93,20 @@ const deletedUser: UserProfile = {
   verified: false,
 };
 
-export function mapComment(row: CommentRow): Comment {
+export function mapPublicProfile(row: ProfileRow, countedAt: string): PublicProfile {
+  return { ...mapProfile(row), followersCount: row.followers_count, countedAt, joinedAt: row.created_at };
+}
+
+export function mapComment(row: CommentRow, countedAt: string): Comment {
   return {
     id: row.id,
     articleId: row.article_id,
     author: row.author ? mapProfile(row.author) : deletedUser,
     body: row.body,
     likesCount: row.likes_count,
+    parentId: row.parent_id,
+    replyToHandle: row.parent?.author?.handle ?? null,
+    countedAt,
     createdAt: row.created_at,
   };
 }
