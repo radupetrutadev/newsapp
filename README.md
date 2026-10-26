@@ -20,6 +20,8 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Generate route types and run `tsc` |
 | `npm test` | Unit tests (Vitest) |
+| `npm run test:e2e` | End-to-end tests in demo mode (Playwright; see [Tests and CI](#tests-and-ci)) |
+| `npm run test:e2e:supabase` | End-to-end tests against a local Supabase stack (needs Docker) |
 | `npm run ingest` | Fetch all RSS feeds once, on a running server (see [News ingestion](#news-ingestion)) |
 | `npm run db:seed:generate` | Regenerate `supabase/seed.sql` from the mock data (Node 22.18+) |
 
@@ -219,6 +221,32 @@ select url, last_success_at, last_error from public.feeds order by last_error nu
 
 Categories are `world`, `politics`, `business`, `tech`, `science`, `health`, `sports`, `entertainment` and `climate`.
 
+## Tests and CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs three jobs, side by side, on every pull request and on pushes to `master`:
+
+| Job | What it checks |
+| --- | --- |
+| Lint, types and unit tests | `npm run lint`, `npm run typecheck`, `npm test` |
+| End-to-end (demo mode) | A production build without Supabase, tested with Playwright on a desktop and a phone screen: the feed, likes and bookmarks, search, threads, autoplay and the sensitive-content blur |
+| End-to-end (Supabase) | A local Supabase stack in Docker, built from `supabase/migrations` and `supabase/seed.sql`, and a production build against it. Tests cover sign-up and sign-in, password resets (the email is read from the local mail catcher), threads, reply likes, deleting and reporting replies, the spam limits, profile photos and the storage rules, deleting an account, activity and settings saved to the account, notifications, and the API routes |
+
+When a job fails, its Playwright report and traces are uploaded with the run. To block merges until the checks pass, require them in **Settings → Branches** for `master`.
+
+### Running them locally
+
+```bash
+npx playwright install chromium   # once
+npm run test:e2e                  # demo mode
+npm run test:e2e:supabase         # needs Docker; starts the local Supabase stack if it isn't running
+```
+
+- Both build the app first. Add `-- --no-build` to reuse the last build when only the tests changed; other Playwright options go after `--` too (`-- --ui`, `-- e2e/supabase/replies.spec.ts`).
+- Your `.env.local` is never used: `scripts/e2e.mjs` sets every variable in `.env.example`, so the tests can't reach your real project.
+- The local stack (`supabase/config.toml`) serves HTTPS with a self-signed certificate created in `e2e/.certs/`, because photo URLs must be https, as in production. If you already run `npx supabase start` for development, stop it first with `npx supabase stop`.
+- Every test signs up its own readers, so tests run in parallel and can run again on the same database. `npx supabase stop --no-backup` wipes it.
+- Nothing leaves the machine: publisher photos are replaced with a blank pixel.
+
 ## Project structure
 
 ```
@@ -250,7 +278,10 @@ src/
     store/             Client state: likes, follows, settings and unread notifications (account, or localStorage in demo mode)
     actions/           Server Actions (auth, account, comments, reader activity, notifications, push, digest)
   proxy.ts             Supabase session refresh
-supabase/              Migrations, starter feeds, cron template and demo seed
+supabase/              Migrations, local stack config, starter feeds, cron template and demo seed
+e2e/                   Playwright tests: demo/ (no Supabase), supabase/ (local stack), shared support/ and fixtures/
+scripts/e2e.mjs        Builds the app for a test target and runs Playwright
+.github/workflows/     CI
 ```
 
 ## Design notes
