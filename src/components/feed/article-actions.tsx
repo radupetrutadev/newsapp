@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useToggle } from "@/lib/store/engagement";
+import { useAdjustedCount, useToggle } from "@/lib/store/engagement";
 import { toast } from "@/lib/store/toast";
 import type { Article } from "@/lib/types";
 import { cn, formatCount } from "@/lib/utils";
@@ -82,6 +82,8 @@ export function ArticleActions({
   const [liked, toggleLike] = useToggle("liked", article.id);
   const [reposted, toggleRepost] = useToggle("reposted", article.id);
   const [bookmarked, toggleBookmark] = useToggle("bookmarked", article.id);
+  const likes = useAdjustedCount("liked", article.id, article.stats.likes, article.countedAt);
+  const reposts = useAdjustedCount("reposted", article.id, article.stats.reposts, article.countedAt);
   const detail = size === "detail";
 
   async function share() {
@@ -118,14 +120,13 @@ export function ArticleActions({
         aria-label={reposted ? "Undo repost" : "Repost"}
         aria-pressed={reposted}
         onClick={() => {
-          toggleRepost();
-          if (!reposted) toast("Reposted to your followers");
+          if (toggleRepost() && !reposted) toast("Reposted to your followers");
         }}
         className={actionClass("repost", reposted)}
       >
         <ActionInner
           icon={Repeat2}
-          count={detail ? undefined : article.stats.reposts + (reposted ? 1 : 0)}
+          count={detail ? undefined : reposts}
           tone="repost"
           active={reposted}
         />
@@ -139,7 +140,7 @@ export function ArticleActions({
       >
         <ActionInner
           icon={Heart}
-          count={detail ? undefined : article.stats.likes + (liked ? 1 : 0)}
+          count={detail ? undefined : likes}
           tone="like"
           active={liked}
           filled
@@ -156,7 +157,7 @@ export function ArticleActions({
           aria-label={bookmarked ? "Remove bookmark" : "Bookmark"}
           aria-pressed={bookmarked}
           onClick={() => {
-            toggleBookmark();
+            if (!toggleBookmark()) return;
             toast(bookmarked ? "Removed from your Bookmarks" : "Added to your Bookmarks");
           }}
           className={actionClass("accent", bookmarked)}

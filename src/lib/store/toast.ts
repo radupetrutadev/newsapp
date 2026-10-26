@@ -2,9 +2,15 @@
 
 import { useSyncExternalStore } from "react";
 
+export interface ToastAction {
+  label: string;
+  href: string;
+}
+
 export interface Toast {
   id: number;
   message: string;
+  action?: ToastAction;
 }
 
 let toasts: Toast[] = [];
@@ -16,15 +22,18 @@ function emit() {
   listeners.forEach((listener) => listener());
 }
 
-/** Show an X-style toast at the bottom of the screen. */
-export function toast(message: string) {
+/** Show an X-style toast at the bottom of the screen, optionally with a link. */
+export function toast(message: string, action?: ToastAction) {
   const id = nextId++;
-  toasts = [...toasts, { id, message }];
+  toasts = [...toasts, { id, message, action }];
   emit();
-  setTimeout(() => {
-    toasts = toasts.filter((item) => item.id !== id);
-    emit();
-  }, 3_000);
+  setTimeout(
+    () => {
+      toasts = toasts.filter((item) => item.id !== id);
+      emit();
+    },
+    action ? 5_000 : 3_000,
+  );
 }
 
 function subscribe(listener: () => void) {

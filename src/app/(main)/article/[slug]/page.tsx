@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArticleTimestamp } from "@/components/article/article-timestamp";
 import { CommentThread } from "@/components/article/comment-thread";
+import { EngagementStats } from "@/components/article/engagement-stats";
+import { RecordView } from "@/components/article/record-view";
 import { ArticleActions } from "@/components/feed/article-actions";
 import { ArticleList } from "@/components/feed/article-list";
 import { ArticleMedia } from "@/components/feed/article-media";
@@ -63,15 +65,10 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
 
   const related = await getRelatedArticles(article, 4);
   const { source, stats } = article;
-  // Like X, only non-zero counts are shown.
-  const engagement = [
-    { label: "Reposts", value: stats.reposts },
-    { label: "Likes", value: stats.likes },
-    { label: "Replies", value: stats.comments },
-  ].filter(({ value }) => value > 0);
 
   return (
     <>
+      <RecordView articleId={article.id} />
       <article className="px-4 pt-3">
         <div className="flex items-center gap-3">
           <Link href={`/source/${source.handle}`}>
@@ -174,15 +171,7 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
         </p>
       </article>
 
-      {engagement.length > 0 ? (
-        <div className="mx-4 flex gap-5 border-t border-border py-4 text-[15px] text-muted">
-          {engagement.map(({ label, value }) => (
-            <span key={label}>
-              <span className="font-bold text-foreground">{formatCount(value)}</span> {label}
-            </span>
-          ))}
-        </div>
-      ) : null}
+      <EngagementStats article={article} />
 
       <div className="mx-4 border-y border-border py-2">
         <ArticleActions article={article} size="detail" />

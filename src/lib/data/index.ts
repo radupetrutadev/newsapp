@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createPublicClient } from "@/lib/supabase/server";
 import type { AppNotification, Article, Comment, Source, Trend } from "@/lib/types";
 import {
+  ARTICLE_SELECT,
   mapArticle,
   mapComment,
   mapSource,
@@ -22,7 +23,6 @@ import {
  * revalidate every minute.
  */
 
-const ARTICLE_SELECT = "*, source:sources(*)";
 const FEED_LIMIT = 100;
 
 function minutesAgo(now: number, minutes: number): string {
@@ -53,13 +53,14 @@ export async function getFeed(): Promise<Article[]> {
       .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   }
 
+  const countedAt = new Date().toISOString();
   const { data, error } = await createPublicClient()
     .from("articles")
     .select(ARTICLE_SELECT)
     .order("published_at", { ascending: false })
     .limit(FEED_LIMIT);
   if (error) fail("feed", error);
-  return (data as ArticleRow[]).map(mapArticle);
+  return (data as ArticleRow[]).map((row) => mapArticle(row, countedAt));
 }
 
 export async function getArticle(slug: string): Promise<Article | null> {
@@ -71,13 +72,14 @@ export async function getArticle(slug: string): Promise<Article | null> {
     return (await getFeed()).find((article) => article.slug === slug) ?? null;
   }
 
+  const countedAt = new Date().toISOString();
   const { data, error } = await createPublicClient()
     .from("articles")
     .select(ARTICLE_SELECT)
     .eq("slug", slug)
     .maybeSingle();
   if (error) fail(`article "${slug}"`, error);
-  return data ? mapArticle(data as ArticleRow) : null;
+  return data ? mapArticle(data as ArticleRow, countedAt) : null;
 }
 
 /** Slugs to prerender at build time. Always returns at least one entry. */
@@ -114,12 +116,13 @@ export async function getSources(): Promise<Source[]> {
     return [...mockSources].sort((a, b) => b.followersCount - a.followersCount);
   }
 
+  const countedAt = new Date().toISOString();
   const { data, error } = await createPublicClient()
     .from("sources")
     .select("*")
     .order("followers_count", { ascending: false });
   if (error) fail("sources", error);
-  return data.map(mapSource);
+  return data.map((row) => mapSource(row, countedAt));
 }
 
 export async function getSource(handle: string): Promise<Source | null> {

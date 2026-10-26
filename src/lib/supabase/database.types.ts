@@ -172,18 +172,90 @@ export type Database = {
         Row: { user_id: string; article_id: string; created_at: string };
         Insert: { user_id: string; article_id: string; created_at?: string };
         Update: Partial<Database["public"]["Tables"]["bookmarks"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       likes: {
         Row: { user_id: string; article_id: string; created_at: string };
         Insert: { user_id: string; article_id: string; created_at?: string };
         Update: Partial<Database["public"]["Tables"]["likes"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "likes_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reposts: {
+        Row: { user_id: string; article_id: string; created_at: string };
+        Insert: { user_id: string; article_id: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["reposts"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "reposts_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       follows: {
         Row: { user_id: string; source_id: string; created_at: string };
         Insert: { user_id: string; source_id: string; created_at?: string };
         Update: Partial<Database["public"]["Tables"]["follows"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "follows_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      topic_follows: {
+        Row: { user_id: string; category: string; created_at: string };
+        Insert: { user_id: string; category: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["topic_follows"]["Insert"]>;
+        Relationships: [];
+      };
+      user_settings: {
+        Row: {
+          user_id: string;
+          show_images: boolean;
+          show_breaking_banner: boolean;
+          autoplay_video: boolean;
+          hide_sensitive: boolean;
+          breaking_alerts: boolean;
+          daily_brief: boolean;
+          replies_and_mentions: boolean;
+          email_digest: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          show_images?: boolean;
+          show_breaking_banner?: boolean;
+          autoplay_video?: boolean;
+          hide_sensitive?: boolean;
+          breaking_alerts?: boolean;
+          daily_brief?: boolean;
+          replies_and_mentions?: boolean;
+          email_digest?: boolean;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_settings"]["Insert"]>;
         Relationships: [];
       };
       feeds: {
@@ -229,6 +301,10 @@ export type Database = {
     Functions: {
       replace_trends: {
         Args: { items: Json };
+        Returns: undefined;
+      };
+      record_article_view: {
+        Args: { article_id: string };
         Returns: undefined;
       };
     };

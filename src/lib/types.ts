@@ -22,6 +22,12 @@ export interface Source {
   logoUrl: string | null;
   verified: boolean;
   followersCount: number;
+  /**
+   * When the counts were read from the database. Cached pages can lag behind
+   * the reader's own likes and follows; the client corrects for that. Absent
+   * on demo data, whose counts never include the reader.
+   */
+  countedAt?: string;
   joinedAt: string;
 }
 
@@ -47,6 +53,12 @@ export interface Article {
   isBreaking: boolean;
   readTimeMinutes: number;
   stats: ArticleStats;
+  /**
+   * When the counts were read from the database. Cached pages can lag behind
+   * the reader's own likes and follows; the client corrects for that. Absent
+   * on demo data, whose counts never include the reader.
+   */
+  countedAt?: string;
   publishedAt: string;
 }
 

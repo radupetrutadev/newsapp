@@ -2,7 +2,7 @@
 
 import { Trash2 } from "lucide-react";
 import { iconButton } from "@/components/layout/page-header";
-import { clearEngagement, useEngagement } from "@/lib/store/engagement";
+import { clearAllBookmarks, useEngagement } from "@/lib/store/engagement";
 import { toast } from "@/lib/store/toast";
 
 export function ClearBookmarksButton() {
@@ -16,8 +16,7 @@ export function ClearBookmarksButton() {
       title="Clear all bookmarks"
       onClick={() => {
         if (!window.confirm("Clear all bookmarks? This can't be undone.")) return;
-        clearEngagement("bookmarked");
-        toast("All bookmarks cleared");
+        if (clearAllBookmarks()) toast("All bookmarks cleared");
       }}
       className={`${iconButton} hover:text-live`}
     >

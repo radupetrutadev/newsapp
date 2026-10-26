@@ -46,6 +46,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
 2. Run the migrations in order in the SQL editor (or `supabase db push` with the Supabase CLI):
    - `supabase/migrations/20261014000000_init.sql` — tables, indexes, RLS policies, a trigger that creates a profile for each new user, and a trigger that keeps comment counts in sync.
    - `supabase/migrations/20261019000000_feeds.sql` — the `feeds` table, one row per story URL, and the function that refreshes trends.
+   - `supabase/migrations/20261024000000_activity.sql` — reposts, followed topics and settings tables, triggers that keep like, repost and follower counts in sync, and the story view counter.
 3. Load content — pick one:
    - **Real news:** run `supabase/feeds.sql` (12 publishers, 28 RSS feeds), then set up [news ingestion](#news-ingestion).
    - **Demo content:** run `supabase/seed.sql` for the fictional stories from demo mode. Don't mix it with real news in production.
@@ -58,9 +59,15 @@ Restart `npm run dev` after changing env vars.
 
 - **Reads:** feed, articles, sources, trends and comments (`src/lib/data`). Public reads use a cookie-free client inside `"use cache"` functions, so pages are prerendered and revalidate every minute.
 - **Auth:** sign in, sign up, OAuth, sign out (`src/lib/actions/auth.ts`); the session is refreshed in `src/proxy.ts`.
-- **Writes:** posting a reply (`src/lib/actions/comments.ts`); stories and trends from news ingestion (`src/lib/ingest`).
+- **Writes:** replies (`src/lib/actions/comments.ts`); likes, reposts, bookmarks, followed sources and topics, settings and story views (`src/lib/actions/activity.ts`); stories and trends from news ingestion (`src/lib/ingest`).
 
-Still client-side for now (saved in `localStorage`): likes, reposts, bookmarks, follows and settings (`src/lib/store`). The `likes`, `bookmarks` and `follows` tables and their RLS policies are already in the schema, ready for the move. Notifications are mock-only.
+### Reader activity
+
+- Likes, reposts, bookmarks, follows and settings are saved to the reader's account. They load once per page visit (`src/components/layout/activity-sync.tsx`) into the client stores in `src/lib/store`.
+- Buttons update straight away and undo themselves, with a message, if saving fails. Signed-out readers are asked to sign in.
+- Like, repost and follower counts are kept up to date by database triggers. Pages are cached for about a minute, so the app adds the reader's own recent changes to cached counts until the cache catches up.
+- A story view is counted when its page opens, at most once per day per browser. Views aren't protected against someone deliberately calling the counter over and over.
+- In demo mode, all of this stays in the browser's `localStorage`, as before. Notifications are still mock-only.
 
 ## News ingestion
 
@@ -118,8 +125,8 @@ src/
     ingest/            RSS/Atom parsing, cleanup, trend detection and the ingestion run
     mock/              Mock sources, articles, comments, trends, notifications
     supabase/          Browser / server / proxy / admin clients and database types
-    store/             localStorage-backed client state (engagement, settings)
-    actions/           Server Actions (auth, comments)
+    store/             Client state: likes, follows and settings (account, or localStorage in demo mode)
+    actions/           Server Actions (auth, comments, reader activity)
   proxy.ts             Supabase session refresh
 supabase/              Migrations, starter feeds, cron template and demo seed
 ```

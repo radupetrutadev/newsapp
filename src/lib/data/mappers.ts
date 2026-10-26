@@ -1,10 +1,13 @@
 import type { Row } from "@/lib/supabase/database.types";
 import type { Article, CategorySlug, Comment, Source, Trend, UserProfile } from "@/lib/types";
 
+/** Articles with their publisher embedded. */
+export const ARTICLE_SELECT = "*, source:sources(*)";
+
 export type ArticleRow = Row<"articles"> & { source: Row<"sources"> | null };
 export type CommentRow = Row<"comments"> & { author: Row<"profiles"> | null };
 
-export function mapSource(row: Row<"sources">): Source {
+export function mapSource(row: Row<"sources">, countedAt: string): Source {
   return {
     id: row.id,
     handle: row.handle,
@@ -16,16 +19,17 @@ export function mapSource(row: Row<"sources">): Source {
     logoUrl: row.logo_url,
     verified: row.verified,
     followersCount: row.followers_count,
+    countedAt,
     joinedAt: row.created_at,
   };
 }
 
-export function mapArticle(row: ArticleRow): Article {
+export function mapArticle(row: ArticleRow, countedAt: string): Article {
   if (!row.source) throw new Error(`Article ${row.id} has no source`);
   return {
     id: row.id,
     slug: row.slug,
-    source: mapSource(row.source),
+    source: mapSource(row.source, countedAt),
     title: row.title,
     summary: row.summary,
     body: row.body,
@@ -41,6 +45,7 @@ export function mapArticle(row: ArticleRow): Article {
       likes: row.likes_count,
       views: row.views_count,
     },
+    countedAt,
     publishedAt: row.published_at,
   };
 }

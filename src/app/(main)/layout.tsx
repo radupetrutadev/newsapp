@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { ActivitySync } from "@/components/layout/activity-sync";
 import { LeftSidebar } from "@/components/layout/left-sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { RightSidebar } from "@/components/layout/right-sidebar";
@@ -28,6 +30,10 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       </aside>
 
       <MobileNav badges={badges} />
+
+      <Suspense fallback={null}>
+        <ActivitySync />
+      </Suspense>
     </div>
   );
 }

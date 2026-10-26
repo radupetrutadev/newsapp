@@ -7,8 +7,9 @@ import { ArticleList } from "@/components/feed/article-list";
 import { SourceRow } from "@/components/source/source-row";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FeedSkeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
-import { useEngagement } from "@/lib/store/engagement";
+import { useEngagement, useEngagementStatus } from "@/lib/store/engagement";
 import type { Article, Source } from "@/lib/types";
 
 type ProfileTab = "likes" | "reposts" | "following";
@@ -21,6 +22,7 @@ const tabs: { id: ProfileTab; label: string }[] = [
 
 export function ProfileTabs({ articles, sources }: { articles: Article[]; sources: Source[] }) {
   const [tab, setTab] = useState<ProfileTab>("likes");
+  const loading = useEngagementStatus() === "loading";
   const { liked, reposted, following } = useEngagement();
   const byId = new Map(articles.map((article) => [article.id, article]));
   const pick = (ids: string[]) => ids.flatMap((id) => byId.get(id) ?? []);
@@ -28,7 +30,8 @@ export function ProfileTabs({ articles, sources }: { articles: Article[]; source
   return (
     <>
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
-      {tab === "likes" ? (
+      {loading ? <FeedSkeleton count={2} /> : null}
+      {!loading && tab === "likes" ? (
         liked.length > 0 ? (
           <ArticleList articles={pick(liked)} />
         ) : (
@@ -39,7 +42,7 @@ export function ProfileTabs({ articles, sources }: { articles: Article[]; source
           />
         )
       ) : null}
-      {tab === "reposts" ? (
+      {!loading && tab === "reposts" ? (
         reposted.length > 0 ? (
           <ArticleList articles={pick(reposted)} />
         ) : (
@@ -50,7 +53,7 @@ export function ProfileTabs({ articles, sources }: { articles: Article[]; source
           />
         )
       ) : null}
-      {tab === "following" ? (
+      {!loading && tab === "following" ? (
         following.length > 0 ? (
           <div>
             {sources
