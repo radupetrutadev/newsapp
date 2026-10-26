@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel>
+    <title>Example Video News</title>
+    <link>https://video.example.com</link>
+    <item>
+      <title>Flood waters sweep through valley towns</title>
+      <link>https://video.example.com/floods</link>
+      <description>Warning: this report contains graphic footage of the rescue.</description>
+      <pubDate>Sun, 19 Oct 2026 10:00:00 GMT</pubDate>
+      <media:group>
+        <media:content url="https://cdn.video.example.com/floods/master.m3u8" type="application/x-mpegURL"/>
+        <media:content url="https://cdn.video.example.com/floods/1920.mp4" type="video/mp4" width="1920"/>
+        <media:content url="https://cdn.video.example.com/floods/1280.mp4" type="video/mp4" width="1280"/>
+        <media:content url="https://cdn.video.example.com/floods/640.mp4" type="video/mp4" width="640"/>
+        <media:thumbnail url="https://cdn.video.example.com/floods/poster.jpg" width="1280"/>
+      </media:group>
+    </item>
+    <item>
+      <title>Court releases footage from the trial</title>
+      <link>https://video.example.com/trial</link>
+      <description>The judge allowed the video to be shown.</description>
+      <pubDate>Sun, 19 Oct 2026 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.video.example.com/trial.webm" type="video/webm" length="1000"/>
+      <media:rating scheme="urn:simple">adult</media:rating>
+    </item>
+    <item>
+      <title>Stream-only briefing on the budget</title>
+      <link>https://video.example.com/budget</link>
+      <description>Ministers set out their plans.</description>
+      <pubDate>Sun, 19 Oct 2026 08:00:00 GMT</pubDate>
+      <media:content medium="video" url="https://cdn.video.example.com/budget/master.m3u8"/>
+      <media:content medium="video" url="http://cdn.video.example.com/budget.mp4"/>
+      <media:rating scheme="urn:simple">nonadult</media:rating>
+    </item>
+    <item>
+      <title>Graphic novel adaptation tops the box office</title>
+      <link>https://video.example.com/film</link>
+      <description>Critics praised its disturbing, brilliant lead.</description>
+      <pubDate>Sun, 19 Oct 2026 07:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

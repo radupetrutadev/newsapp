@@ -62,7 +62,7 @@ async function Profile({ articles, sources }: { articles: Article[]; sources: So
         banner={<Cover seed={viewer.handle} category="tech" className="size-full" />}
         avatar={<UserAvatar user={viewer} size={134} />}
         actions={
-          <Link href="/settings" className={buttonClasses({ variant: "outline" })}>
+          <Link href="/profile/edit" className={buttonClasses({ variant: "outline" })}>
             Edit profile
           </Link>
         }

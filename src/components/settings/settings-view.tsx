@@ -44,13 +44,13 @@ const feedRows: ToggleRow[] = [
     key: "autoplayVideo",
     icon: Play,
     title: "Autoplay video",
-    description: "Play video previews automatically while you scroll.",
+    description: "Play story videos, muted, while they're on screen in your feed.",
   },
   {
     key: "hideSensitive",
     icon: EyeOff,
     title: "Hide sensitive content",
-    description: "Blur graphic images until you choose to view them.",
+    description: "Blur graphic or distressing photos and videos until you choose to see them.",
   },
 ];
 

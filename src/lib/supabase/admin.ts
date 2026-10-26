@@ -11,8 +11,9 @@ export function isAdminConfigured(): boolean {
 }
 
 /**
- * Service-role client for background jobs (news ingestion). It bypasses RLS,
- * so it must never be used to serve user requests or reach client code.
+ * Service-role client for background jobs (news ingestion, push, digest) and
+ * for deleting the signed-in reader's own account. It bypasses RLS, so it
+ * must never read or write for user requests otherwise, or reach client code.
  */
 export function createAdminClient() {
   return createClient<Database>(supabaseUrl, secretKey, {

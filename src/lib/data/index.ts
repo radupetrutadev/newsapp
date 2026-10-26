@@ -261,6 +261,11 @@ export async function getSourceHandles(): Promise<string[]> {
  * cached, so a reply shows up straight away, also for the person a
  * notification sends to it. Call after `connection()` (see the story page).
  */
+/**
+ * A story's threads: the 100 most-liked comments that start one, and the
+ * replies under them (see buildThreads). Placeholders for removed replies
+ * are included.
+ */
 export async function getComments(articleId: string): Promise<Comment[]> {
   if (!isSupabaseConfigured()) {
     return mockComments
@@ -270,25 +275,46 @@ export async function getComments(articleId: string): Promise<Comment[]> {
   }
 
   const countedAt = new Date().toISOString();
-  const { data, error } = await createPublicClient()
-    .from("comments")
-    .select(COMMENT_SELECT)
-    .eq("article_id", articleId)
-    .order("likes_count", { ascending: false })
-    .limit(50);
-  if (error) fail("comments", error);
-  return (data as unknown as CommentRow[]).map((row) => mapComment(row, countedAt));
+  const supabase = createPublicClient();
+  const [roots, replies] = await Promise.all([
+    supabase
+      .from("comments")
+      .select(COMMENT_SELECT)
+      .eq("article_id", articleId)
+      .is("root_id", null)
+      .order("likes_count", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("comments")
+      .select(COMMENT_SELECT)
+      .eq("article_id", articleId)
+      .not("root_id", "is", null)
+      .order("created_at", { ascending: true })
+      .limit(1000),
+  ]);
+  if (roots.error) fail("comments", roots.error);
+  if (replies.error) fail("replies", replies.error);
+  return [...roots.data, ...replies.data].map((row) => mapComment(row as unknown as CommentRow, countedAt));
 }
 
 function fromMock(now: number) {
   const users = new Map(mockUsers.map((user) => [user.id, user]));
-  return ({ authorId, minutesAgo: age, ...comment }: MockComment): Comment => ({
-    ...comment,
-    author: users.get(authorId)!,
-    parentId: null,
-    replyToHandle: null,
-    createdAt: minutesAgo(now, age),
-  });
+  const comments = new Map(mockComments.map((comment) => [comment.id, comment]));
+  const rootOf = (comment: MockComment): MockComment =>
+    comment.parentId ? rootOf(comments.get(comment.parentId)!) : comment;
+  return ({ authorId, minutesAgo: age, parentId, ...comment }: MockComment): Comment => {
+    const parent = parentId ? comments.get(parentId) : undefined;
+    return {
+      ...comment,
+      author: users.get(authorId)!,
+      parentId: parentId ?? null,
+      replyToHandle: parent ? users.get(parent.authorId)!.handle : null,
+      rootId: parent ? rootOf(parent).id : null,
+      removed: null,
+      createdAt: minutesAgo(now, age),
+    };
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -348,6 +374,7 @@ export async function getUserComments(userId: string, limit = 30): Promise<UserC
     .from("comments")
     .select(`${COMMENT_SELECT}, article:articles(slug, title)`)
     .eq("user_id", userId)
+    .is("hidden_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) fail("comments", error);

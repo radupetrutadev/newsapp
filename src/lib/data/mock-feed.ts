@@ -12,8 +12,10 @@ export async function getMockFeed(): Promise<Article[]> {
   const now = Date.now();
   const sources = new Map(mockSources.map((source) => [source.id, source]));
   return mockArticles
-    .map(({ sourceId, minutesAgo, ...article }) => ({
+    .map(({ sourceId, minutesAgo, videoUrl, isSensitive, ...article }) => ({
       ...article,
+      videoUrl: videoUrl ?? null,
+      isSensitive: isSensitive ?? false,
       source: sources.get(sourceId)!,
       publishedAt: new Date(now - minutesAgo * 60_000).toISOString(),
     }))

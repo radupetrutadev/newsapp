@@ -148,3 +148,26 @@ export async function getViewerArticles(
     article?.source ? [mapArticle(article, countedAt)] : [],
   );
 }
+
+/**
+ * The comments on a story the reader has reported, which stay folded away
+ * for them. Empty in demo mode, where reports stay in the page.
+ */
+export async function getViewerReports(articleId: string): Promise<string[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  const viewer = await getViewer();
+  if (!viewer) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("comment_reports")
+    .select("comment_id, comment:comments!inner(article_id)")
+    .eq("comment.article_id", articleId)
+    .limit(LIST_LIMIT);
+  if (error) {
+    console.error(`Supabase: failed to load reports: ${error.message}`);
+    return [];
+  }
+  return data.map((report) => report.comment_id);
+}

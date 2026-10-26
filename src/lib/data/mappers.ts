@@ -6,8 +6,8 @@ import type { Article, CategorySlug, Comment, PublicProfile, Source, Trend, User
  * vector, which only the database needs, isn't sent with every story.
  */
 export const ARTICLE_SELECT = `
-  id, slug, source_id, title, summary, body, image_url, url, category, tags, is_breaking,
-  read_time_minutes, comments_count, reposts_count, likes_count, views_count, published_at,
+  id, slug, source_id, title, summary, body, image_url, video_url, url, category, tags,
+  is_breaking, is_sensitive, read_time_minutes, comments_count, reposts_count, likes_count, views_count, published_at,
   created_at, source:sources(*)
 `;
 
@@ -57,10 +57,12 @@ export function mapArticle(row: ArticleRow, countedAt: string): Article {
     summary: row.summary,
     body: row.body,
     imageUrl: row.image_url,
+    videoUrl: row.video_url,
     url: row.url,
     category: row.category as CategorySlug,
     tags: row.tags,
     isBreaking: row.is_breaking,
+    isSensitive: row.is_sensitive,
     readTimeMinutes: row.read_time_minutes,
     stats: {
       comments: row.comments_count,
@@ -98,14 +100,18 @@ export function mapPublicProfile(row: ProfileRow, countedAt: string): PublicProf
 }
 
 export function mapComment(row: CommentRow, countedAt: string): Comment {
+  // A hidden reply's text stays in the database for review, but isn't sent on.
+  const removed = row.deleted_at ? "deleted" : row.hidden_at ? "hidden" : null;
   return {
     id: row.id,
     articleId: row.article_id,
-    author: row.author ? mapProfile(row.author) : deletedUser,
-    body: row.body,
-    likesCount: row.likes_count,
+    author: row.author && !removed ? mapProfile(row.author) : deletedUser,
+    body: removed ? "" : row.body,
+    likesCount: removed ? 0 : row.likes_count,
     parentId: row.parent_id,
     replyToHandle: row.parent?.author?.handle ?? null,
+    rootId: row.root_id,
+    removed,
     countedAt,
     createdAt: row.created_at,
   };

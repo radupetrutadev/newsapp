@@ -41,6 +41,9 @@ const articles = mockArticles.map((article) =>
     text(article.category),
     textArray(article.tags),
     article.isBreaking,
+    // Demo videos are files in public/, which the database (https only) can't point at.
+    text(article.videoUrl?.startsWith("https://") ? article.videoUrl : null),
+    article.isSensitive ?? false,
     article.readTimeMinutes,
     article.stats.comments,
     article.stats.reposts,
@@ -60,7 +63,7 @@ insert into public.sources (handle, name, description, website, category, color,
 ${sources.join(",\n")}
 on conflict (handle) do nothing;
 
-insert into public.articles (slug, source_id, title, summary, body, category, tags, is_breaking, read_time_minutes, comments_count, reposts_count, likes_count, views_count, published_at) values
+insert into public.articles (slug, source_id, title, summary, body, category, tags, is_breaking, video_url, is_sensitive, read_time_minutes, comments_count, reposts_count, likes_count, views_count, published_at) values
 ${articles.join(",\n")}
 on conflict (slug) do nothing;
 

@@ -52,6 +52,10 @@ export type Database = {
           category: string;
           tags: string[];
           is_breaking: boolean;
+          /** A video for the story (https), played in the feed when the reader's autoplay setting is on. */
+          video_url: string | null;
+          /** Graphic or distressing media, blurred while the reader's sensitive-content setting is on. */
+          is_sensitive: boolean;
           read_time_minutes: number;
           comments_count: number;
           reposts_count: number;
@@ -74,6 +78,8 @@ export type Database = {
           category: string;
           tags?: string[];
           is_breaking?: boolean;
+          video_url?: string | null;
+          is_sensitive?: boolean;
           read_time_minutes?: number;
           comments_count?: number;
           reposts_count?: number;
@@ -122,19 +128,28 @@ export type Database = {
         Row: {
           id: string;
           article_id: string;
-          user_id: string;
+          /** Null on a deleted reply that others answered, which stays as a placeholder. */
+          user_id: string | null;
           body: string;
           likes_count: number;
           parent_id: string | null;
+          /** The comment that started the thread; null on that comment. Set by a trigger. */
+          root_id: string | null;
+          deleted_at: string | null;
+          /** Set once enough readers report it. */
+          hidden_at: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           article_id: string;
-          user_id: string;
+          user_id?: string | null;
           body: string;
           likes_count?: number;
           parent_id?: string | null;
+          root_id?: string | null;
+          deleted_at?: string | null;
+          hidden_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["comments"]["Insert"]>;
@@ -156,6 +171,13 @@ export type Database = {
           {
             foreignKeyName: "comments_parent_id_fkey";
             columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "comments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "comments_root_id_fkey";
+            columns: ["root_id"];
             isOneToOne: false;
             referencedRelation: "comments";
             referencedColumns: ["id"];
@@ -279,6 +301,20 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "comment_likes_comment_id_fkey";
+            columns: ["comment_id"];
+            isOneToOne: false;
+            referencedRelation: "comments";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      comment_reports: {
+        Row: { comment_id: string; reporter_id: string; reason: string; created_at: string };
+        Insert: { comment_id: string; reporter_id: string; reason: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["comment_reports"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "comment_reports_comment_id_fkey";
             columns: ["comment_id"];
             isOneToOne: false;
             referencedRelation: "comments";
@@ -420,6 +456,10 @@ export type Database = {
       };
       mark_notifications_read: {
         Args: { up_to: string };
+        Returns: undefined;
+      };
+      delete_comment: {
+        Args: { comment_id: string };
         Returns: undefined;
       };
       save_push_subscription: {
