@@ -13,8 +13,9 @@ import { SourceAvatar } from "@/components/ui/avatar";
 import { Cover } from "@/components/ui/cover";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { getCategory } from "@/lib/categories";
-import { getArticlesBySource, getSource, getSourceHandles } from "@/lib/data";
-import { cn, formatMonthYear, hostname } from "@/lib/utils";
+import { getSource, getSourceHandles, getSourceStoryCount } from "@/lib/data";
+import { getFeedPage } from "@/lib/data/feeds";
+import { cn, formatMonthYear, hostname, storyCount } from "@/lib/utils";
 
 export async function generateStaticParams() {
   return (await getSourceHandles()).map((handle) => ({ handle }));
@@ -42,7 +43,10 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
   const source = await getSource(handle);
   if (!source) notFound();
 
-  const articles = await getArticlesBySource(source.id);
+  const [latest, stories] = await Promise.all([
+    getFeedPage({ kind: "source", sourceId: source.id, order: "latest" }, null),
+    getSourceStoryCount(source.id),
+  ]);
   const category = getCategory(source.category);
 
   return (
@@ -55,7 +59,7 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
             {source.verified ? <VerifiedBadge variant="gold" /> : null}
           </span>
         }
-        subtitle={`${articles.length} ${articles.length === 1 ? "story" : "stories"}`}
+        subtitle={storyCount(stories)}
       />
 
       <ProfileHeader
@@ -111,7 +115,7 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
         stats={[{ label: "Followers", value: <FollowerCount source={source} /> }]}
       />
 
-      <SourceArticles articles={articles} name={source.name} />
+      <SourceArticles sourceId={source.id} latest={latest} name={source.name} />
     </>
   );
 }

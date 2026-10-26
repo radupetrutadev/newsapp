@@ -59,6 +59,8 @@ export type Database = {
           views_count: number;
           published_at: string;
           created_at: string;
+          /** Generated from the headline, tags, summary and topic for full-text search. */
+          search_vector: unknown;
         };
         Insert: {
           id?: string;
@@ -79,6 +81,7 @@ export type Database = {
           views_count?: number;
           published_at?: string;
           created_at?: string;
+          search_vector?: never;
         };
         Update: Partial<Database["public"]["Tables"]["articles"]["Insert"]>;
         Relationships: [
@@ -306,6 +309,34 @@ export type Database = {
       record_article_view: {
         Args: { article_id: string };
         Returns: undefined;
+      };
+      // The feed functions return a JSON array of articles rows with "source" embedded.
+      for_you_feed: {
+        Args: {
+          as_of: string;
+          page_offset: number;
+          page_size: number;
+          topics?: string[];
+          category?: string | null;
+        };
+        Returns: Json;
+      };
+      following_feed: {
+        Args: {
+          page_size: number;
+          category?: string | null;
+          before_at?: string | null;
+          before_id?: string | null;
+        };
+        Returns: Json;
+      };
+      search_articles: {
+        Args: { query: string; as_of: string; page_offset: number; page_size: number };
+        Returns: Json;
+      };
+      topic_stats: {
+        Args: { since: string };
+        Returns: { category: string; stories: number; views: number }[];
       };
     };
     Enums: { [_ in never]: never };

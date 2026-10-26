@@ -4,14 +4,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { TopicFollowButton } from "@/components/topics/topic-follow-button";
 import { Cover } from "@/components/ui/cover";
 import { categories } from "@/lib/categories";
-import { getFeed } from "@/lib/data";
+import { getTopicStats } from "@/lib/data";
+import { storyCount } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Topics" };
 
 export default async function TopicsPage() {
-  const feed = await getFeed();
-  const counts = new Map<string, number>();
-  for (const article of feed) counts.set(article.category, (counts.get(article.category) ?? 0) + 1);
+  const stats = await getTopicStats();
 
   return (
     <>
@@ -30,7 +29,7 @@ export default async function TopicsPage() {
       <ul>
         {categories.map((category) => {
           const Icon = category.icon;
-          const count = counts.get(category.slug) ?? 0;
+          const count = stats[category.slug]?.stories ?? 0;
           return (
             <li key={category.slug} className="relative border-b border-border">
               <Link
@@ -46,9 +45,7 @@ export default async function TopicsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-[15px] font-bold">{category.name}</p>
                   <p className="line-clamp-1 text-[15px] text-muted">{category.description}</p>
-                  <p className="text-[13px] text-muted">
-                    {count} {count === 1 ? "story" : "stories"} today
-                  </p>
+                  <p className="text-[13px] text-muted">{storyCount(count)} today</p>
                 </div>
                 <TopicFollowButton slug={category.slug} className="relative" />
               </div>

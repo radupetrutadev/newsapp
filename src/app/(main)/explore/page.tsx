@@ -11,22 +11,28 @@ import { SourceAvatar } from "@/components/ui/avatar";
 import { Cover } from "@/components/ui/cover";
 import { TimeAgo } from "@/components/ui/time-ago";
 import { categories, categoryName } from "@/lib/categories";
-import { getFeed, getSources, getTrends } from "@/lib/data";
+import { getLatestArticles, getMostReadArticles, getSources, getTrends } from "@/lib/data";
 import { formatCount, storyCount } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Explore" };
 
 export default async function ExplorePage() {
-  const [feed, trends, sources] = await Promise.all([getFeed(), getTrends(), getSources()]);
+  const [latest, mostRead, trends, sources] = await Promise.all([
+    getLatestArticles(30),
+    getMostReadArticles(7),
+    getTrends(),
+    getSources(),
+  ]);
   // Rank by reads when they're tracked; otherwise lead with a fresh story that has a photo.
-  const mostRead = [...feed].sort((a, b) => b.stats.views - a.stats.views);
-  const hasReads = (mostRead[0]?.stats.views ?? 0) > 0;
+  const hasReads = mostRead.length > 0;
   const top = hasReads
     ? mostRead[0]
-    : (feed.find((article) => article.isBreaking && article.imageUrl) ??
-      feed.find((article) => article.imageUrl) ??
-      feed[0]);
-  const carousel = (hasReads ? mostRead : feed).filter((article) => article !== top).slice(0, 6);
+    : (latest.find((article) => article.isBreaking && article.imageUrl) ??
+      latest.find((article) => article.imageUrl) ??
+      latest[0]);
+  const carousel = [...new Map([...mostRead, ...latest].map((article) => [article.id, article])).values()]
+    .filter((article) => article.id !== top?.id)
+    .slice(0, 6);
   const heroLabel = hasReads ? "Most read today" : top?.isBreaking ? "Breaking" : "Top story";
 
   return (
@@ -153,7 +159,7 @@ export default async function ExplorePage() {
         <h2 id="latest" className="border-b border-border px-4 pt-6 pb-3 text-xl font-extrabold">
           Latest
         </h2>
-        <ArticleList articles={feed.slice(0, 5)} />
+        <ArticleList articles={latest.slice(0, 5)} />
       </section>
     </>
   );

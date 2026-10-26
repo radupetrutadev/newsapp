@@ -2,15 +2,16 @@ import { Newspaper } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ArticleList } from "@/components/feed/article-list";
+import { FeedList } from "@/components/feed/feed-list";
 import { PageHeader } from "@/components/layout/page-header";
 import { TopicFollowButton } from "@/components/topics/topic-follow-button";
 import { Cover } from "@/components/ui/cover";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FeedSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { categories, getCategory } from "@/lib/categories";
-import { getArticlesByCategory } from "@/lib/data";
-import { formatCount } from "@/lib/utils";
+import { getTopicStats } from "@/lib/data";
+import { getFeedPage } from "@/lib/data/feeds";
+import { formatCount, storyCount } from "@/lib/utils";
 
 export function generateStaticParams() {
   return categories.map((category) => ({ slug: category.slug }));
@@ -47,13 +48,14 @@ async function Topic({ params }: { params: Promise<{ slug: string }> }) {
   const category = getCategory(slug);
   if (!category) notFound();
 
-  const articles = await getArticlesByCategory(category.slug);
+  const feed = { kind: "topic", category: category.slug } as const;
+  const [firstPage, stats] = await Promise.all([getFeedPage(feed, null), getTopicStats()]);
+  const { stories, views } = stats[category.slug] ?? { stories: 0, views: 0 };
   const Icon = category.icon;
-  const reads = articles.reduce((total, article) => total + article.stats.views, 0);
 
   return (
     <>
-      <PageHeader title={category.name} subtitle={`${articles.length} stories`} back="/topics" />
+      <PageHeader title={category.name} subtitle={`${storyCount(stories)} today`} back="/topics" />
 
       <section className="relative">
         <Cover seed={`topic-${category.slug}`} category={category.slug} className="h-48 w-full sm:h-56" />
@@ -72,24 +74,27 @@ async function Topic({ params }: { params: Promise<{ slug: string }> }) {
 
       <div className="flex gap-5 border-b border-border px-4 py-3 text-[15px] text-muted">
         <span>
-          <span className="font-bold text-foreground">{articles.length}</span> stories today
+          <span className="font-bold text-foreground">{formatCount(stories)}</span>{" "}
+          {stories === 1 ? "story" : "stories"} today
         </span>
-        {reads > 0 ? (
+        {views > 0 ? (
           <span>
-            <span className="font-bold text-foreground">{formatCount(reads)}</span> reads
+            <span className="font-bold text-foreground">{formatCount(views)}</span> reads
           </span>
         ) : null}
       </div>
 
-      {articles.length > 0 ? (
-        <ArticleList articles={articles} />
-      ) : (
-        <EmptyState
-          icon={Newspaper}
-          title="Quiet for now"
-          description={`There are no ${category.name} stories yet. Follow the topic and we'll surface new ones in your feed.`}
-        />
-      )}
+      <FeedList
+        feed={feed}
+        initial={firstPage}
+        empty={
+          <EmptyState
+            icon={Newspaper}
+            title="Quiet for now"
+            description={`There are no ${category.name} stories yet. Follow the topic and we'll surface new ones in your feed.`}
+          />
+        }
+      />
     </>
   );
 }

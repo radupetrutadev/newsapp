@@ -27,7 +27,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
 
 | Route | Page |
 | --- | --- |
-| `/` | **Feed** — "For you" / "Following" tabs, topic chips, live breaking banner |
+| `/` | **Feed** — ranked "For you" and "Following" tabs with infinite scroll, topic chips, live breaking banner |
 | `/article/[slug]` | Story — full article, engagement stats, replies, related stories |
 | `/explore` | Search, most-read hero, top stories carousel, trends, topics, sources |
 | `/search?q=` | Search results for stories and sources |
@@ -47,6 +47,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
    - `supabase/migrations/20261014000000_init.sql` — tables, indexes, RLS policies, a trigger that creates a profile for each new user, and a trigger that keeps comment counts in sync.
    - `supabase/migrations/20261019000000_feeds.sql` — the `feeds` table, one row per story URL, and the function that refreshes trends.
    - `supabase/migrations/20261024000000_activity.sql` — reposts, followed topics and settings tables, triggers that keep like, repost and follower counts in sync, and the story view counter.
+   - `supabase/migrations/20261026000000_feeds_search.sql` — paging indexes, full-text search, and the functions behind "For you", "Following" and search results. See [Feeds and search](#feeds-and-search).
 3. Load content — pick one:
    - **Real news:** run `supabase/feeds.sql` (12 publishers, 28 RSS feeds), then set up [news ingestion](#news-ingestion).
    - **Demo content:** run `supabase/seed.sql` for the fictional stories from demo mode. Don't mix it with real news in production.
@@ -57,7 +58,7 @@ Restart `npm run dev` after changing env vars.
 
 ### What uses Supabase today
 
-- **Reads:** feed, articles, sources, trends and comments (`src/lib/data`). Public reads use a cookie-free client inside `"use cache"` functions, so pages are prerendered and revalidate every minute.
+- **Reads:** feeds, search, articles, sources, trends and comments (`src/lib/data`). Public reads use a cookie-free client inside `"use cache"` functions, so pages are prerendered and revalidate every minute.
 - **Auth:** sign in, sign up, OAuth, sign out (`src/lib/actions/auth.ts`); the session is refreshed in `src/proxy.ts`.
 - **Writes:** replies (`src/lib/actions/comments.ts`); likes, reposts, bookmarks, followed sources and topics, settings and story views (`src/lib/actions/activity.ts`); stories and trends from news ingestion (`src/lib/ingest`).
 
@@ -68,6 +69,16 @@ Restart `npm run dev` after changing env vars.
 - Like, repost and follower counts are kept up to date by database triggers. Pages are cached for about a minute, so the app adds the reader's own recent changes to cached counts until the cache catches up.
 - A story view is counted when its page opens, at most once per day per browser. Views aren't protected against someone deliberately calling the counter over and over.
 - In demo mode, all of this stays in the browser's `localStorage`, as before. Notifications are still mock-only.
+
+### Feeds and search
+
+Feeds load 20 stories at a time. The server renders the first page; more load from `/api/feed` as the reader scrolls (`src/lib/data/feeds.ts`, `src/components/feed/feed-list.tsx`). This covers the home feed, topic and source pages, and search results.
+
+- **For you:** the newest 1,000 stories, ranked in the database. Newer stories rank higher. Likes, reposts, replies and reads lift a story, with diminishing returns. Stories in topics the reader follows count double. Later pages are ranked as of when the first one loaded, so new stories don't push others around while the reader scrolls. Readers who follow the same topics share cached pages.
+- **Following:** stories from the sources the reader follows, newest first, read from their `follows` rows in one query. Signed-out readers are asked to follow sources.
+- **Search:** Postgres full-text search over the headline, tags, summary and topic, with English word forms ("deals" finds "deal"). Every word must match. Words of four letters or more also match longer words ("clim" finds "climate"). Headline matches count most, and newer stories rank higher. Sources are matched by name, handle and description.
+- **Paging:** newest-first lists continue after the last story shown, so a page never repeats or skips a story, even when new ones arrive. Ranked lists stop after 2,000 stories.
+- **Demo mode:** the same feeds over the mock stories, with the same ranking (`src/lib/ranking.ts`). Follows stay in the browser and are sent with each request.
 
 ## News ingestion
 
@@ -115,13 +126,14 @@ src/
     (main)/            Three-column shell (nav · timeline · sidebar) and all app pages
     (auth)/            Full-screen login / signup
     auth/callback/     OAuth + email confirmation code exchange
+    api/feed/          Next page of a feed, for infinite scroll
     api/ingest/        Protected endpoint that runs news ingestion
   components/
-    feed/              Article card, actions bar, feed view, breaking banner
+    feed/              Article card, actions bar, feed view, infinite-scroll list, breaking banner
     layout/            Sidebars, mobile nav, sticky page header, search
     ui/                Avatar, verified badge, generated cover art, tabs, switch, …
   lib/
-    data/              Data access: mock data or Supabase, same return types
+    data/              Data access: mock data or Supabase, same return types; paged feeds
     ingest/            RSS/Atom parsing, cleanup, trend detection and the ingestion run
     mock/              Mock sources, articles, comments, trends, notifications
     supabase/          Browser / server / proxy / admin clients and database types
