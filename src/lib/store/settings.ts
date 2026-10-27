@@ -4,6 +4,7 @@ import { startTransition, useSyncExternalStore } from "react";
 import { saveSettings } from "@/lib/actions/activity";
 import type { AccountActivity } from "@/lib/activity";
 import { defaultSettings, type Settings } from "@/lib/settings";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createPersistentStore } from "./persistent-store";
 import { toast } from "./toast";
 
@@ -12,17 +13,26 @@ export { defaultSettings, type Settings };
 /*
  * Reader preferences. A signed-in reader's settings are loaded by
  * <ActivitySync> and saved to their account; otherwise (demo mode, signed
- * out) they stay in this browser.
+ * out) they stay in this browser. Changes made before <ActivitySync> has said
+ * which applies are kept until it has.
  */
 
 const local = createPersistentStore<Settings>("pulse:settings:v1", defaultSettings);
 
 let account: { userId: string; settings: Settings } | null = null;
+/** Whether <ActivitySync> has said whose settings these are. Never needed in demo mode. */
+let hydrated = !isSupabaseConfigured();
+/** Changes made before then, and the settings shown meanwhile. */
+let early: { changes: Partial<Settings>; settings: Settings } | null = null;
 const listeners = new Set<() => void>();
+
+function emit() {
+  listeners.forEach((listener) => listener());
+}
 
 function setAccount(next: typeof account) {
   account = next;
-  listeners.forEach((listener) => listener());
+  emit();
 }
 
 function subscribe(listener: () => void) {
@@ -35,7 +45,7 @@ function subscribe(listener: () => void) {
 }
 
 function getSnapshot(): Settings {
-  return account?.settings ?? local.getSnapshot();
+  return account?.settings ?? early?.settings ?? local.getSnapshot();
 }
 
 export function useSettings(): Settings {
@@ -49,16 +59,28 @@ export function getSettings(): Settings {
 
 /** Called by <ActivityHydrator>. Without a loaded account, browser settings apply. */
 export function hydrateSettings(activity: AccountActivity) {
+  hydrated = true;
+  const changes = early?.changes;
+  early = null;
+
   if (activity.status !== "ready") {
+    if (changes) local.setState((current) => ({ ...current, ...changes }));
     if (account) setAccount(null);
     return;
   }
   // Keep changes made in this tab when the same reader's page re-renders.
   if (account?.userId === activity.userId) return;
   setAccount({ userId: activity.userId, settings: activity.settings });
+  if (changes) save(changes);
 }
 
 function save(changes: Partial<Settings>) {
+  if (!hydrated) {
+    const all = { ...early?.changes, ...changes };
+    early = { changes: all, settings: { ...local.getSnapshot(), ...all } };
+    emit();
+    return;
+  }
   if (!account) {
     local.setState((current) => ({ ...current, ...changes }));
     return;

@@ -1,4 +1,4 @@
-import { clickUntil, expectToast, open, openReplyMenu, postReply, reload, reply } from "../support/page";
+import { expectToast, open, openReplyMenu, postReply, reload, reply } from "../support/page";
 import { addReply, admin, createReader, expect, replyId, story, test } from "../support/supabase";
 
 const slug = "markets-rally-inflation-cools";
@@ -65,10 +65,8 @@ test("likes on replies are saved", async ({ signedIn }) => {
   const bobReply = await addReply(bob, articleId, `Worth a like ${Date.now()}`);
 
   await open(alice.page, `/article/${slug}`);
-  await clickUntil(
-    reply(alice.page, bobReply).getByRole("button", { name: "Like", exact: true }),
-    reply(alice.page, bobReply).getByRole("button", { name: "Unlike" }),
-  );
+  await reply(alice.page, bobReply).getByRole("button", { name: "Like", exact: true }).click();
+  await expect(reply(alice.page, bobReply).getByRole("button", { name: "Unlike" })).toBeVisible();
   await expect
     .poll(async () => (await admin.from("comment_likes").select("user_id").eq("comment_id", bobReply)).data?.length)
     .toBe(1);

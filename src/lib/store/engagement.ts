@@ -22,7 +22,8 @@ export type { EngagementList };
  * - Demo mode: saved in this browser.
  * - With Supabase: loaded from the reader's account by <ActivitySync> and
  *   saved with server actions. Changes show at once and are rolled back if
- *   saving fails. Signed-out readers are asked to sign in.
+ *   saving fails. Signed-out readers are asked to sign in. Items switched on
+ *   before the account has loaded are saved once it has.
  */
 
 type Lists = Record<EngagementList, string[]>;
@@ -78,6 +79,12 @@ const loadingState: EngagementState = { status: "loading", userId: null, lists: 
 let account = loadingState;
 const listeners = new Set<() => void>();
 
+/**
+ * Items switched on while the account was loading. Everything shows as off
+ * until then, so switching an item off again just forgets it.
+ */
+let early: { list: EngagementList; id: string }[] = [];
+
 function setAccount(next: EngagementState) {
   account = next;
   listeners.forEach((listener) => listener());
@@ -103,6 +110,8 @@ export function hydrateEngagement(activity: AccountActivity) {
   const sameReader = "userId" in activity && activity.userId === account.userId;
   if (sameReader && account.status === "ready") return;
 
+  const pending = early;
+  early = [];
   if (activity.status === "ready") {
     const lists = { ...emptyLists };
     const changes: EngagementState["changes"] = {};
@@ -113,10 +122,15 @@ export function hydrateEngagement(activity: AccountActivity) {
       );
     }
     setAccount({ status: "ready", userId: activity.userId, lists, changes });
+    for (const { list, id } of pending) {
+      if (!account.lists[list].includes(id)) toggleEngagement(list, id);
+    }
   } else if (activity.status === "unavailable") {
     setAccount({ ...loadingState, status: "unavailable", userId: activity.userId });
+    if (pending.length > 0) canWrite(pending[0].list);
   } else if (account.status !== "signed-out") {
     setAccount({ ...loadingState, status: "signed-out" });
+    if (pending.length > 0) canWrite(pending[0].list);
   }
 }
 
@@ -142,7 +156,7 @@ function canWrite(list: EngagementList): boolean {
       toast("Your account didn't load. Refresh the page and try again.");
       return false;
     default:
-      // Still loading; the button will work in a moment.
+      // Still loading, so no bookmarks are showing yet.
       return false;
   }
 }
@@ -163,7 +177,8 @@ function updateChanges(
 
 /**
  * Turns an item on or off. Returns false when nothing changed because the
- * reader is signed out or their account is still loading.
+ * reader is signed out or their account didn't load. While it's loading, the
+ * change shows at once and is saved once it has (see `hydrateEngagement`).
  */
 export function toggleEngagement(list: EngagementList, id: string): boolean {
   if (demo) {
@@ -171,6 +186,12 @@ export function toggleEngagement(list: EngagementList, id: string): boolean {
       ...current,
       [list]: withItem(current[list], id, !current[list].includes(id)),
     }));
+    return true;
+  }
+  if (account.status === "loading") {
+    const on = !account.lists[list].includes(id);
+    early = on ? [...early, { list, id }] : early.filter((item) => item.list !== list || item.id !== id);
+    setAccount({ ...account, lists: { ...account.lists, [list]: withItem(account.lists[list], id, on) } });
     return true;
   }
   if (!canWrite(list)) return false;
