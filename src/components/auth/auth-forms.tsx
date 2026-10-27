@@ -49,7 +49,14 @@ export function LoginForm() {
 
   return (
     <form action={action} className="space-y-3">
-      <FloatingInput label="Email" name="email" type="email" autoComplete="email" required />
+      <FloatingInput
+        label="Email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        defaultValue={state.values?.email}
+        required
+      />
       <FloatingInput
         label="Password"
         name="password"
@@ -73,16 +80,31 @@ export function SignupForm() {
 
   return (
     <form action={action} className="space-y-3">
-      <FloatingInput label="Name" name="name" autoComplete="name" maxLength={50} required />
+      <FloatingInput
+        label="Name"
+        name="name"
+        autoComplete="name"
+        maxLength={50}
+        defaultValue={state.values?.name}
+        required
+      />
       <FloatingInput
         label="Username"
         name="handle"
         autoComplete="username"
         pattern="@?[A-Za-z0-9_]{3,15}"
         title="3–15 letters, numbers or underscores"
+        defaultValue={state.values?.handle}
         required
       />
-      <FloatingInput label="Email" name="email" type="email" autoComplete="email" required />
+      <FloatingInput
+        label="Email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        defaultValue={state.values?.email}
+        required
+      />
       <FloatingInput
         label="Password"
         name="password"
@@ -104,7 +126,14 @@ export function ForgotPasswordForm() {
 
   return (
     <form action={action} className="space-y-3">
-      <FloatingInput label="Email" name="email" type="email" autoComplete="email" required />
+      <FloatingInput
+        label="Email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        defaultValue={state.values?.email}
+        required
+      />
       <FormStatus state={state} />
       <Button type="submit" variant="primary" className="h-10 w-full" disabled={pending}>
         {pending ? "Sending…" : "Send reset link"}

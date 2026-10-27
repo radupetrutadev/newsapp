@@ -30,8 +30,9 @@ test("a new reader signs up, logs out and signs back in", async ({ page }) => {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByText("Invalid login credentials")).toBeVisible();
 
-  // The form clears after each attempt.
-  await page.getByRole("textbox", { name: "Email" }).fill(email);
+  // The email is kept for the next try; the password isn't.
+  await expect(page.getByRole("textbox", { name: "Email" })).toHaveValue(email);
+  await expect(page.getByLabel("Password")).toHaveValue("");
   await page.getByLabel("Password").fill("a-long-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL("/");

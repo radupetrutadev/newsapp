@@ -8,6 +8,11 @@ import { createClient } from "@/lib/supabase/server";
 export interface AuthState {
   error?: string;
   message?: string;
+  /**
+   * What the reader typed, shown again in the form: React empties a form after
+   * its action runs. Never passwords.
+   */
+  values?: { name?: string; handle?: string; email?: string };
 }
 
 const NOT_CONFIGURED =
@@ -26,15 +31,15 @@ function field(formData: FormData, name: string): string {
 }
 
 export async function signIn(_state: AuthState, formData: FormData): Promise<AuthState> {
-  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED };
-
   const email = field(formData, "email");
   const password = field(formData, "password");
-  if (!email || !password) return { error: "Enter your email and password." };
+  const values = { email };
+  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED, values };
+  if (!email || !password) return { error: "Enter your email and password.", values };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
+  if (error) return { error: error.message, values };
 
   redirect("/");
 }
@@ -42,18 +47,18 @@ export async function signIn(_state: AuthState, formData: FormData): Promise<Aut
 const HANDLE_PATTERN = /^[a-z0-9_]{3,15}$/;
 
 export async function signUp(_state: AuthState, formData: FormData): Promise<AuthState> {
-  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED };
-
   const name = field(formData, "name");
   const handle = field(formData, "handle").replace(/^@/, "").toLowerCase();
   const email = field(formData, "email");
   const password = field(formData, "password");
+  const values = { name, handle: field(formData, "handle"), email };
+  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED, values };
 
-  if (!name || !email || !password) return { error: "Fill in every field to continue." };
+  if (!name || !email || !password) return { error: "Fill in every field to continue.", values };
   if (!HANDLE_PATTERN.test(handle)) {
-    return { error: "Usernames are 3–15 characters: letters, numbers and underscores." };
+    return { error: "Usernames are 3–15 characters: letters, numbers and underscores.", values };
   }
-  if (password.length < 8) return { error: "Use at least 8 characters for your password." };
+  if (password.length < 8) return { error: "Use at least 8 characters for your password.", values };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -64,11 +69,11 @@ export async function signUp(_state: AuthState, formData: FormData): Promise<Aut
       emailRedirectTo: `${await origin()}/auth/callback`,
     },
   });
-  if (error) return { error: error.message };
+  if (error) return { error: error.message, values };
 
   // With email confirmation disabled Supabase returns a session right away.
   if (data.session) redirect("/");
-  return { message: `Check ${email} for a link to confirm your account.` };
+  return { message: `Check ${email} for a link to confirm your account.`, values };
 }
 
 /**
@@ -76,20 +81,20 @@ export async function signUp(_state: AuthState, formData: FormData): Promise<Aut
  * not an account uses the address, so the form can't be used to find accounts.
  */
 export async function requestPasswordReset(_state: AuthState, formData: FormData): Promise<AuthState> {
-  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED };
-
   const email = field(formData, "email");
-  if (!email) return { error: "Enter the email you signed up with." };
+  const values = { email };
+  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED, values };
+  if (!email) return { error: "Enter the email you signed up with.", values };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${await origin()}/auth/callback?next=/reset-password`,
   });
   if (error?.status === 429) {
-    return { error: "Too many emails were sent just now. Wait a few minutes and try again." };
+    return { error: "Too many emails were sent just now. Wait a few minutes and try again.", values };
   }
   if (error) console.error(`Supabase: failed to send a password reset email: ${error.message}`);
-  return { message: `If an account uses ${email}, we've sent it a link to choose a new password.` };
+  return { message: `If an account uses ${email}, we've sent it a link to choose a new password.`, values };
 }
 
 /** Sets a new password for the signed-in reader (after a reset link, or from Settings). */

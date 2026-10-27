@@ -17,6 +17,7 @@ test("signing in explains demo mode", async ({ page }) => {
   await page.getByLabel("Password").fill("not-a-real-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByText("Pulse is running in demo mode.")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Email" })).toHaveValue("reader@example.com");
 });
 
 test("demo settings have no password or delete account rows", async ({ page }) => {
