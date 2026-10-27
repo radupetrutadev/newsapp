@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mockSources } from "./mock/sources";
-import { storyRank } from "./ranking";
+import { readingHistory, storyRank } from "./ranking";
 import type { Article, ArticleStats } from "./types";
 
 const now = Date.parse("2026-10-26T12:00:00Z");
@@ -68,5 +68,19 @@ describe("storyRank", () => {
 
   it("treats stories dated in the future as brand new", () => {
     expect(storyRank(story(-2), now, [])).toBe(storyRank(story(0), now, []));
+  });
+
+  it("sinks stories the reader has read and lifts the topics they read", () => {
+    const sport = { ...story(2, { likes: 40 }, "sports"), id: "sport" };
+    const tech = { ...story(2, { likes: 40 }, "tech"), id: "tech" };
+    const read = { ...story(2, { likes: 40 }, "sports"), id: "read" };
+    const other = { ...story(5, {}, "sports"), id: "other" };
+    // Two of the three stories read were sports; "gone" is no longer stored, and repeats count once.
+    const history = readingHistory(["read", "gone", "other", "tech", "other"], [sport, tech, read, other]);
+
+    expect(history.topicShare.get("sports")).toBeCloseTo(2 / 3, 12);
+    expect(storyRank(read, now, [], history)).toBeCloseTo(storyRank(read, now, []) * 0.25, 12);
+    expect(storyRank(sport, now, [], history)).toBeCloseTo(storyRank(sport, now, []) * (1 + 2 / 3), 12);
+    expect(storyRank(tech, now, [], history)).toBe(storyRank(tech, now, []) * 0.25);
   });
 });

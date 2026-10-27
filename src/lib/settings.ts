@@ -10,6 +10,8 @@ export interface Settings {
   dailyBrief: boolean;
   repliesAndMentions: boolean;
   emailDigest: boolean;
+  /** Rank "For you" by the stories the reader opens. */
+  personalizeFeed: boolean;
 }
 
 // Keep in sync with the column defaults of public.user_settings.
@@ -22,6 +24,7 @@ export const defaultSettings: Settings = {
   dailyBrief: true,
   repliesAndMentions: true,
   emailDigest: false,
+  personalizeFeed: true,
 };
 
 type SettingsColumn = Exclude<keyof Row<"user_settings">, "user_id" | "updated_at">;
@@ -36,6 +39,7 @@ export const settingsColumns: Record<keyof Settings, SettingsColumn> = {
   dailyBrief: "daily_brief",
   repliesAndMentions: "replies_and_mentions",
   emailDigest: "email_digest",
+  personalizeFeed: "personalize_feed",
 };
 
 export const settingsKeys = Object.keys(settingsColumns) as (keyof Settings)[];

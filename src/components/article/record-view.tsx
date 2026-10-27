@@ -2,14 +2,22 @@
 
 import { startTransition, useEffect } from "react";
 import { recordView } from "@/lib/actions/activity";
+import { rememberRead } from "@/lib/store/history";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const STORAGE_KEY = "pulse:views:v1";
 
-/** Counts a view of the story, once per day in this browser. Renders nothing. */
+/**
+ * Counts a view of the story, once per day in this browser, which also adds it
+ * to a signed-in reader's history. In demo mode the story is remembered in this
+ * browser instead, for "For you". Renders nothing.
+ */
 export function RecordView({ articleId }: { articleId: string }) {
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured()) {
+      rememberRead(articleId);
+      return;
+    }
 
     const today = new Date().toISOString().slice(0, 10);
     let seen: Record<string, string> = {};

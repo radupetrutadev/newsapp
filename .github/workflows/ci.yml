@@ -88,3 +88,23 @@ jobs:
             playwright-report/supabase
             test-results/supabase
           retention-days: 7
+
+  search-eval:
+    name: Search quality
+    # Run by hand (Actions → CI → Run workflow), after adding an OPENAI_API_KEY
+    # repository secret. The report shows on the run's summary page.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Starts a local Supabase stack with the demo stories, embeds them and
+      # compares full-text search with full-text plus search by meaning.
+      - run: npm run search:eval

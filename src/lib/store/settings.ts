@@ -42,6 +42,11 @@ export function useSettings(): Settings {
   return useSyncExternalStore(subscribe, getSnapshot, local.getServerSnapshot);
 }
 
+/** The current settings, outside React. */
+export function getSettings(): Settings {
+  return getSnapshot();
+}
+
 /** Called by <ActivityHydrator>. Without a loaded account, browser settings apply. */
 export function hydrateSettings(activity: AccountActivity) {
   if (activity.status !== "ready") {

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** A file in e2e/fixtures. */
 export const fixture = (name: string) => join(__dirname, "..", "fixtures", name);
@@ -24,6 +24,31 @@ export async function open(page: Page, path: string) {
 export async function reload(page: Page) {
   await page.reload();
   await hydrated(page);
+}
+
+/**
+ * Clicks a button that saves to the reader's account (like, bookmark, follow)
+ * until `done` shows. Right after a page loads, the account's likes and follows
+ * may still be loading, and the buttons do nothing until they are.
+ */
+export async function clickUntil(button: Locator, done: Locator) {
+  await expect(async () => {
+    if (!(await done.isVisible())) await button.click();
+    await expect(done).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+}
+
+/**
+ * Turns a settings switch on or off until `saved` reports it on the account.
+ * A switch flipped before the account's settings load only changes this
+ * browser, and the account's value then puts it back.
+ */
+export async function setSwitch(page: Page, name: string, on: boolean, saved: () => Promise<boolean | undefined>) {
+  const toggle = page.getByRole("switch", { name });
+  await expect(async () => {
+    if ((await toggle.getAttribute("aria-checked")) !== String(on)) await toggle.click();
+    await expect.poll(saved, { timeout: 2_000 }).toBe(on);
+  }).toPass();
 }
 
 /** The feed card that links to a story. */

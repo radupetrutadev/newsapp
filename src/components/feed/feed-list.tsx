@@ -6,6 +6,8 @@ import { PagedListFooter, usePagedList, type Page } from "@/components/ui/paged-
 import { ArticleSkeleton, FeedSkeleton } from "@/components/ui/skeleton";
 import { feedParams, isLiveFeed, newestPublishedAt, type FeedPage, type FeedSpec } from "@/lib/feeds";
 import { getEngagement } from "@/lib/store/engagement";
+import { readHistory } from "@/lib/store/history";
+import { getSettings } from "@/lib/store/settings";
 import { toast } from "@/lib/store/toast";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Article } from "@/lib/types";
@@ -20,10 +22,11 @@ const NEW_STORIES_POLL_MS = 60_000;
 function feedQuery(feed: FeedSpec): URLSearchParams {
   const params = feedParams(feed);
   if (demo) {
-    // Demo mode keeps follows in this browser, so the server needs to be told.
+    // Demo mode keeps follows and reading history in this browser, so the server needs to be told.
     const { following, topics } = getEngagement();
     params.set("sources", following.join(","));
     params.set("topics", topics.join(","));
+    if (feed.kind === "for-you" && getSettings().personalizeFeed) params.set("read", readHistory().join(","));
   }
   return params;
 }

@@ -1,4 +1,4 @@
-import { open, storyCard } from "../support/page";
+import { clickUntil, open, setSwitch, storyCard } from "../support/page";
 import { admin, expect, signIn, test } from "../support/supabase";
 import { keepOffline } from "../support/test";
 
@@ -11,9 +11,14 @@ test("likes, bookmarks and follows are saved to the account", async ({ signedIn,
 
   // The story's own buttons come first; related stories follow.
   await open(page, `/article/${privacy.slug}`);
-  await page.getByRole("button", { name: "Like", exact: true }).first().click();
-  await page.getByRole("button", { name: "Bookmark", exact: true }).first().click();
-  await expect(page.getByRole("button", { name: "Unlike" }).first()).toBeVisible();
+  await clickUntil(
+    page.getByRole("button", { name: "Like", exact: true }).first(),
+    page.getByRole("button", { name: "Unlike" }).first(),
+  );
+  await clickUntil(
+    page.getByRole("button", { name: "Bookmark", exact: true }).first(),
+    page.getByRole("button", { name: "Remove bookmark" }).first(),
+  );
   // Saved in the background; leaving the page too soon would cancel it.
   const saved = (table: "likes" | "bookmarks" | "follows") => async () =>
     (await admin.from(table).select("user_id").eq("user_id", reader.id)).data?.length;
@@ -21,8 +26,10 @@ test("likes, bookmarks and follows are saved to the account", async ({ signedIn,
   await expect.poll(saved("bookmarks")).toBe(1);
 
   await open(page, "/source/pulsedispatch");
-  await page.getByRole("main").getByRole("button", { name: "Follow", exact: true }).first().click();
-  await expect(page.getByRole("main").getByRole("button", { name: "Following" }).first()).toBeVisible();
+  await clickUntil(
+    page.getByRole("main").getByRole("button", { name: "Follow", exact: true }).first(),
+    page.getByRole("main").getByRole("button", { name: /^(Following|Unfollow)$/ }).first(),
+  );
   await expect.poll(saved("follows")).toBe(1);
 
   // The same reader on another device.
@@ -45,11 +52,14 @@ test("settings are saved to the account and apply everywhere", async ({ signedIn
   await expect(storyCard(reader.page, wildfire).getByText("Sensitive content")).toBeVisible();
 
   await open(reader.page, "/settings");
-  await reader.page.getByRole("switch", { name: "Hide sensitive content" }).click();
-  await expect(reader.page.getByRole("switch", { name: "Hide sensitive content" })).not.toBeChecked();
-  await expect
-    .poll(async () => (await admin.from("user_settings").select("hide_sensitive").eq("user_id", reader.id).single()).data?.hide_sensitive)
-    .toBe(false);
+  await setSwitch(
+    reader.page,
+    "Hide sensitive content",
+    false,
+    async () =>
+      (await admin.from("user_settings").select("hide_sensitive").eq("user_id", reader.id).maybeSingle()).data
+        ?.hide_sensitive,
+  );
 
   const other = await browser.newContext();
   await keepOffline(other);

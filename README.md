@@ -22,6 +22,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
 | `npm test` | Unit tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests in demo mode (Playwright; see [Tests and CI](#tests-and-ci)) |
 | `npm run test:e2e:supabase` | End-to-end tests against a local Supabase stack (needs Docker) |
+| `npm run search:eval` | Search quality on the test queries, full-text vs. full-text plus meaning (see [Search by meaning](#search-by-meaning-and-reading-history)) |
 | `npm run ingest` | Fetch all RSS feeds once, on a running server (see [News ingestion](#news-ingestion)) |
 | `npm run db:seed:generate` | Regenerate `supabase/seed.sql` from the mock data (Node 22.18+) |
 
@@ -57,6 +58,7 @@ Open [http://localhost:3000](http://localhost:3000). No configuration is needed 
    - `supabase/migrations/20261027000000_notifications.sql` — replies to comments, comment likes, following people, notifications and the triggers that create them, push subscriptions and digest records. See [Notifications](#notifications). Safe to run again if a run stopped partway.
    - `supabase/migrations/20261028000000_accounts_community.sql` — profile limits and the `avatars` storage bucket, reply threads, deleting and reporting replies, spam limits, account deletion clean-up, and video and sensitive-content columns on stories. See [Accounts and community](#accounts-and-community). Safe to run again if a run stopped partway.
    - `supabase/migrations/20261029000000_story_clusters.sql` — story clusters for "Full coverage", the function ingestion saves them with, and "For you" showing each event once. See [Full coverage](#full-coverage). Safe to run again.
+   - `supabase/migrations/20261030000000_search_and_history.sql` — pgvector story embeddings, search that fuses full-text and meaning, reading history and the "For you" that learns from it. See [Search by meaning](#search-by-meaning-and-reading-history). Safe to run again.
 
    Run each new migration **before** deploying the code that needs it. The build prerenders pages that read the database, so a build against a database without the migration fails; on Vercel the live site keeps running the previous deploy until a build succeeds.
 3. Load content — pick one:
@@ -86,9 +88,9 @@ Restart `npm run dev` after changing env vars.
 
 Feeds load 20 stories at a time. The server renders the first page; more load from `/api/feed` as the reader scrolls (`src/lib/data/feeds.ts`, `src/components/feed/feed-list.tsx`). This covers the home feed, topic and source pages, and search results.
 
-- **For you:** the newest 1,000 stories, ranked in the database, with one story per event (see [Full coverage](#full-coverage)). Newer stories rank higher. Likes, reposts, replies and reads lift a story, with diminishing returns, and so does coverage by more publishers. Stories in topics the reader follows count double. Later pages are ranked as of when the first one loaded, so new stories don't push others around while the reader scrolls. Readers who follow the same topics share cached pages.
+- **For you:** the newest 1,000 stories, ranked in the database, with one story per event (see [Full coverage](#full-coverage)). Newer stories rank higher. Likes, reposts, replies and reads lift a story, with diminishing returns, and so does coverage by more publishers. Stories in topics the reader follows count double, and a signed-in reader's reading history shapes the rest (see [Search by meaning](#search-by-meaning-and-reading-history)). Later pages are ranked as of when the first one loaded, so new stories don't push others around while the reader scrolls. Signed-out readers who follow the same topics share cached pages.
 - **Following:** stories from the sources the reader follows, newest first, read from their `follows` rows in one query. Signed-out readers are asked to follow sources.
-- **Search:** Postgres full-text search over the headline, tags, summary and topic, with English word forms ("deals" finds "deal"). Every word must match. Words of four letters or more also match longer words ("clim" finds "climate"). Headline matches count most, and newer stories rank higher. Sources are matched by name, handle and description.
+- **Search:** Postgres full-text search over the headline, tags, summary and topic, with English word forms ("deals" finds "deal"). Every word must match. Words of four letters or more also match longer words ("clim" finds "climate"). Headline matches count most, and newer stories rank higher. With an OpenAI key, stories close to the query in meaning join the results. Sources are matched by name, handle and description.
 - **Paging:** newest-first lists continue after the last story shown, so a page never repeats or skips a story, even when new ones arrive. Ranked lists stop after 2,000 stories.
 - **Demo mode:** the same feeds over the mock stories, with the same ranking (`src/lib/ranking.ts`). Follows stay in the browser and are sent with each request.
 
@@ -101,6 +103,28 @@ When several publishers report the same event, their stories form a cluster. Fee
 - **How well:** on the hand-labeled stories in `src/lib/ingest/__fixtures__/clusters.ts` (10 events told by 2–4 outlets each, plus look-alikes such as the Fed and the ECB both holding rates), it never joins stories about different events, and it finds 96% of the pairs that belong together. Wrong merges start at a threshold of 0.225. `cluster.test.ts` checks these numbers; rerun it after changing the weights or the threshold.
 - **Limits:** stories that describe an event in entirely different words, with no shared names or figures, are missed. Two clusters that turn out to be about the same event aren't merged.
 - **Demo mode** clusters the mock stories with the same code, and `supabase/seed.sql` stores the same clusters.
+
+### Search by meaning and reading history
+
+With `OPENAI_API_KEY` set (server-only), each story gets an embedding: a vector of what it's about, from OpenAI's `text-embedding-3-small`, shortened to 512 dimensions and stored with pgvector (`src/lib/search/openai.ts`). Without the key, search matches words only and "For you" learns topics from reading.
+
+- **Embeddings:** news ingestion embeds up to 200 stories without one on each run, newest first, so older stories catch up over a few runs. The text is the headline, summary, tags and topic. At this size that's well under a dollar a year.
+- **Search** (`public.search_articles`): full-text matches and the 40 stories closest in meaning to the query (cosine similarity of at least 0.3), fused by reciprocal rank: each list adds `1 / (60 + position)` to a story's score. Words still win when they match, and "northern lights" can find the aurora stories. The query's embedding is cached for weeks; if the API fails, search uses the words alone and tries again in a few minutes.
+- **Reading history:** stories a signed-in reader opens go into `reading_history` (their newest 200), through the existing view counter. In demo mode they're kept in the browser.
+- **For you** (`public.for_you_feed`), using their 50 most recent reads: stories they've read keep a quarter of their rank, and others rise by up to double, by closeness in meaning to what they read (cosine similarity to the average of those stories, counted from 0.2 to 0.6), or by the share of their reads in the story's topic when there are no embeddings. A signed-in reader's "For you" is theirs alone, so it isn't cached.
+- **Privacy:** Settings has "Learn from what you read" (on by default) and "Clear reading history". Nobody else can read a reader's history.
+
+#### Measuring it
+
+`src/lib/search/eval-queries.ts` holds 19 test searches over the demo stories, with the stories each should find: 5 use a story's own words, and 14 describe a story in other words ("planting trees" for the reforestation story). `npm run search:eval` runs them against the local Supabase stack, with full-text search alone and with full-text plus meaning, and prints a report. It also tries several similarity cut-offs and an unrelated query, which should return nothing, to help tune `min_similarity`.
+
+```bash
+OPENAI_API_KEY=sk-… npm run search:eval
+```
+
+Full-text search alone puts a relevant story in the top 3 for 5 of the 19 queries (mean reciprocal rank 0.26): it finds the words queries and none of the others. Run the script with a key for the comparison, or run the **Search quality** job in GitHub Actions (Actions → CI → Run workflow) after adding an `OPENAI_API_KEY` repository secret; the report shows on the run's summary page.
+
+The end-to-end tests never call OpenAI: they use a stand-in (`e2e/support/fake-openai.mjs`) that hashes words into vectors and treats a few as synonyms, so "automobiles" finds the story about electric cars.
 
 ## Accounts and community
 
@@ -203,6 +227,7 @@ Real stories come from publishers' public RSS and Atom feeds. `/api/ingest` poll
 - **First run:** only the last 3 days of items are imported, at most 30 per feed per run.
 - **Breaking news:** headlines starting with "Breaking:" get the red Live banner. The flag clears after 6 hours.
 - **Full coverage:** new stories are matched with others about the same event from the last 3 days (see [Full coverage](#full-coverage)).
+- **Embeddings:** with `OPENAI_API_KEY`, stories without an embedding get one, 200 per run (see [Search by meaning](#search-by-meaning-and-reading-history)).
 - **Trends:** worked out from the last 24 hours of stories. Topics are publisher tags and names that appear in headlines, ranked by how many different sources cover them.
 - **Failures:** one broken feed never stops a run. Its error is saved in `feeds.last_error`.
 
@@ -283,6 +308,7 @@ src/
   lib/
     data/              Data access: mock data or Supabase, same return types; paged feeds
     ingest/            RSS/Atom parsing, cleanup, story clustering, trend detection and the ingestion run
+    search/            OpenAI embeddings client and the search test queries
     push/              Browser push: VAPID config, the sender and the browser side
     digest/            Weekly digest email, run and Resend sender
     mock/              Mock sources, articles, comments, trends, notifications
@@ -293,6 +319,7 @@ src/
 supabase/              Migrations, local stack config, starter feeds, cron template and demo seed
 e2e/                   Playwright tests: demo/ (no Supabase), supabase/ (local stack), shared support/ and fixtures/
 scripts/e2e.mjs        Builds the app for a test target and runs Playwright
+scripts/search-eval.mjs  Search quality on the test queries
 .github/workflows/     CI
 ```
 

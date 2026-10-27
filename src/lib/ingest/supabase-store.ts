@@ -116,5 +116,22 @@ export function createSupabaseIngestStore(): IngestStore {
       if (error) throw new Error(`Failed to save clusters: ${error.message}`);
       return data;
     },
+
+    async articlesToEmbed(limit) {
+      const { data, error } = await db
+        .from("articles")
+        .select("id, title, summary, tags, category")
+        .is("embedding", null)
+        .order("published_at", { ascending: false })
+        .limit(limit);
+      if (error) throw new Error(`Failed to load stories to embed: ${error.message}`);
+      return data;
+    },
+
+    async saveEmbeddings(items) {
+      const { data, error } = await db.rpc("set_article_embeddings", { items });
+      if (error) throw new Error(`Failed to save embeddings: ${error.message}`);
+      return data;
+    },
   };
 }

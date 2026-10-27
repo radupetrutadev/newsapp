@@ -3,7 +3,9 @@
 import {
   AtSign,
   BellRing,
+  Eraser,
   EyeOff,
+  History,
   Image as ImageIcon,
   Mail,
   Moon,
@@ -13,10 +15,13 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import { startTransition } from "react";
 import { Switch } from "@/components/ui/switch";
+import { clearReadingHistory } from "@/lib/actions/activity";
 import { PushSetting } from "./push-setting";
 import { SettingsRow, SettingsSection } from "./settings-primitives";
 import { resetEngagement, useEngagementStatus } from "@/lib/store/engagement";
+import { clearLocalHistory } from "@/lib/store/history";
 import { resetSettings, updateSetting, useSettings, type Settings } from "@/lib/store/settings";
 import { toast } from "@/lib/store/toast";
 
@@ -51,6 +56,12 @@ const feedRows: ToggleRow[] = [
     icon: EyeOff,
     title: "Hide sensitive content",
     description: "Blur graphic or distressing photos and videos until you choose to see them.",
+  },
+  {
+    key: "personalizeFeed",
+    icon: History,
+    title: "Learn from what you read",
+    description: "Rank For you by the stories you open, so stories like them come first and ones you've read move down.",
   },
 ];
 
@@ -101,10 +112,15 @@ function Toggles({ rows }: { rows: ToggleRow[] }) {
 }
 
 export function SettingsView() {
+  // Signed out, no reading history is kept to learn from.
+  const signedOut = useEngagementStatus() === "signed-out";
+  const rows = signedOut ? feedRows.filter((row) => row.key !== "personalizeFeed") : feedRows;
+
   return (
     <>
       <SettingsSection title="Your feed" description="Choose what shows up as you scroll.">
-        <Toggles rows={feedRows} />
+        <Toggles rows={rows} />
+        <ClearHistoryRow />
       </SettingsSection>
 
       <SettingsSection
@@ -127,6 +143,40 @@ export function SettingsView() {
 
       <ResetSection />
     </>
+  );
+}
+
+function ClearHistoryRow() {
+  const status = useEngagementStatus();
+  const demo = status === "local";
+  // Signed out, nothing is kept.
+  if (!demo && status !== "ready") return null;
+
+  return (
+    <SettingsRow
+      icon={Eraser}
+      title="Clear reading history"
+      description={demo ? "Forget the stories opened in this browser." : "Forget the stories you've opened."}
+      control={
+        <button
+          type="button"
+          onClick={() => {
+            if (demo) {
+              clearLocalHistory();
+              toast("Reading history cleared");
+              return;
+            }
+            startTransition(async () => {
+              const result = await clearReadingHistory();
+              toast(result.ok ? "Reading history cleared" : result.error);
+            });
+          }}
+          className="h-8 shrink-0 rounded-full border border-border px-4 text-sm font-bold transition-colors hover:bg-white/10"
+        >
+          Clear
+        </button>
+      }
+    />
   );
 }
 

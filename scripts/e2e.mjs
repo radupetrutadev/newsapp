@@ -9,12 +9,10 @@
 //
 // Every variable in .env.example is set here, so a .env.local that points at a
 // real project never reaches the build or the tests.
-import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { get } from "node:https";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { databaseFingerprint, isolatedEnv, root, run, startStack, trustedCertificates } from "./local-stack.mjs";
 
-const root = resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
 const target = args.shift();
 const build = !args.includes("--no-build");
@@ -25,112 +23,39 @@ if (target !== "demo" && target !== "supabase") {
   process.exit(1);
 }
 
-/** The local API serves HTTPS, like a real project: photo URLs must be https. */
-const certs = resolve(root, "e2e/.certs");
-const cert = resolve(certs, "cert.pem");
-const supabaseEnv = {
-  // Paths are relative to the supabase/ folder.
-  SUPABASE_API_TLS_ENABLED: "true",
-  SUPABASE_API_TLS_CERT_PATH: "../e2e/.certs/cert.pem",
-  SUPABASE_API_TLS_KEY_PATH: "../e2e/.certs/key.pem",
-};
-// The tests don't use these; skipping them makes the stack start faster.
-const unusedServices = "studio,edge-runtime,logflare,vector,imgproxy,postgres-meta,supavisor,realtime";
-
-function run(command, commandArgs, env) {
-  const result = spawnSync(command, commandArgs, { cwd: root, stdio: "inherit", env });
-  if (result.status !== 0) process.exit(result.status ?? 1);
-}
-
-function supabase(commandArgs) {
-  return execFileSync("npx", ["supabase", ...commandArgs], {
-    cwd: root,
-    env: { ...process.env, ...supabaseEnv },
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-}
-
-function stackStatus() {
-  try {
-    return JSON.parse(supabase(["status", "-o", "json"]));
-  } catch {
-    return null;
-  }
-}
-
-function makeCertificate() {
-  if (existsSync(cert)) return;
-  mkdirSync(certs, { recursive: true });
-  execFileSync("openssl", [
-    "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650", "-subj", "/CN=localhost",
-    "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1",
-    "-keyout", resolve(certs, "key.pem"), "-out", cert,
-  ], { stdio: "ignore" });
-}
-
-/** Whether the API answers over HTTPS with our certificate. */
-function servesHttps(apiUrl) {
-  return new Promise((done) => {
-    const request = get(new URL("/auth/v1/health", apiUrl), { ca: readFileSync(cert) }, (response) => {
-      response.resume();
-      done(true);
-    });
-    request.on("error", () => done(false));
-    request.setTimeout(5000, () => request.destroy());
-  });
-}
-
-async function startStack() {
-  makeCertificate();
-  let status = stackStatus();
-  if (!status) {
-    console.log("Starting the local Supabase stack…");
-    run("npx", ["supabase", "start", "-x", unusedServices], { ...process.env, ...supabaseEnv });
-    status = stackStatus();
-  }
-  if (!status || !(await servesHttps(status.API_URL))) {
-    console.error(
-      "The local Supabase stack isn't serving HTTPS. Stop it with `npx supabase stop`, then run this again.",
-    );
-    process.exit(1);
-  }
-  return status;
-}
-
-// Blank every documented variable first, then fill in the target's values.
-const documented = readFileSync(resolve(root, ".env.example"), "utf8")
-  .split("\n")
-  .map((line) => /^#?\s*([A-Z][A-Z0-9_]*)=/.exec(line)?.[1])
-  .filter(Boolean);
 const env = {
-  ...process.env,
-  ...Object.fromEntries(documented.map((name) => [name, ""])),
+  ...isolatedEnv(),
   E2E_TARGET: target,
   NEXT_PUBLIC_SITE_URL: "http://localhost:3100",
   NEXT_TELEMETRY_DISABLED: "1",
 };
 
+// What the build is made for: pages are prerendered with the database's stories.
+let buildFor = target;
 if (target === "supabase") {
   const status = await startStack();
+  buildFor = `${target} ${await databaseFingerprint(status)}`;
   Object.assign(env, {
     NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.PUBLISHABLE_KEY,
     SUPABASE_SECRET_KEY: status.SECRET_KEY,
     CRON_SECRET: "e2e-cron-secret-not-for-production",
     E2E_MAILPIT_URL: status.MAILPIT_URL ?? status.INBUCKET_URL,
+    // A stand-in for OpenAI's embeddings API (e2e/support/fake-openai.mjs), started by Playwright.
+    OPENAI_API_KEY: "e2e-fake-key",
+    OPENAI_BASE_URL: "http://127.0.0.1:3101/v1",
     // The app server and the tests both call the local API.
-    NODE_EXTRA_CA_CERTS: cert,
+    NODE_EXTRA_CA_CERTS: trustedCertificates(),
   });
 }
 
-// Which target the build in .next was made for, so --no-build can't test the wrong one.
+// What the build in .next was made for, so --no-build can't test the wrong target or database.
 const marker = resolve(root, ".next/e2e-target");
 if (build) {
   run("npx", ["next", "build"], env);
-  writeFileSync(marker, target);
-} else if (!existsSync(marker) || readFileSync(marker, "utf8") !== target) {
-  console.error(`The last build wasn't made for "${target}". Run this again without --no-build.`);
+  writeFileSync(marker, buildFor);
+} else if (!existsSync(marker) || readFileSync(marker, "utf8") !== buildFor) {
+  console.error(`The last build wasn't made for this ${target === "demo" ? "target" : "database"}. Run this again without --no-build.`);
   process.exit(1);
 }
 run("npx", ["playwright", "test", ...playwrightArgs], env);

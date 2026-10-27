@@ -37,12 +37,18 @@ export default defineConfig({
           { name: "phone", use: devices["Pixel 7"] },
         ]
       : [{ name: "desktop", use: devices["Desktop Chrome"] }],
-  webServer: {
-    command: `npx next start --port ${port}`,
-    url: baseURL,
-    // Never test against a dev server that may be connected to a real project.
-    reuseExistingServer: false,
-    stdout: "ignore",
-    stderr: "pipe",
-  },
+  webServer: [
+    {
+      command: `npx next start --port ${port}`,
+      url: baseURL,
+      // Never test against a dev server that may be connected to a real project.
+      reuseExistingServer: false,
+      stdout: "ignore",
+      stderr: "pipe",
+    },
+    // Stands in for OpenAI's embeddings API (see scripts/e2e.mjs).
+    ...(target === "supabase"
+      ? [{ command: "node e2e/support/fake-openai.mjs 3101", url: "http://127.0.0.1:3101/health", reuseExistingServer: false }]
+      : []),
+  ],
 });

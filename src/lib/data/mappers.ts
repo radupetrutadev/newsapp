@@ -3,7 +3,7 @@ import type { Article, CategorySlug, Comment, PublicProfile, Source, Trend, User
 
 /**
  * Articles with their publisher embedded. Columns are listed so the search
- * vector, which only the database needs, isn't sent with every story.
+ * vector and embedding, which only the database needs, aren't sent with every story.
  */
 export const ARTICLE_SELECT = `
   id, slug, source_id, title, summary, body, image_url, video_url, url, category, tags,
@@ -11,7 +11,7 @@ export const ARTICLE_SELECT = `
   created_at, cluster_id, source:sources(*), cluster:story_clusters(articles_count, sources_count)
 `;
 
-export type ArticleRow = Omit<Row<"articles">, "search_vector"> & {
+export type ArticleRow = Omit<Row<"articles">, "search_vector" | "embedding"> & {
   source: Row<"sources"> | null;
   cluster: Pick<Row<"story_clusters">, "articles_count" | "sources_count"> | null;
 };
