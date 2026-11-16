@@ -7,7 +7,7 @@ export interface ProfileMeta {
   content: ReactNode;
 }
 
-/** Banner, overlapping avatar, name, bio, meta and stats — the X profile top. */
+/** A profile's top card: banner, avatar, name, bio, details and stats. */
 export function ProfileHeader({
   banner,
   avatar,
@@ -23,7 +23,7 @@ export function ProfileHeader({
   avatar: ReactNode;
   actions?: ReactNode;
   name: string;
-  verified?: "blue" | "gold" | null;
+  verified?: "person" | "source" | null;
   handle: string;
   bio?: ReactNode;
   meta: ProfileMeta[];
@@ -31,38 +31,45 @@ export function ProfileHeader({
   stats: { label: ReactNode; value: ReactNode; key?: string }[];
 }) {
   return (
-    <section>
-      <div className="aspect-[3/1] w-full overflow-hidden bg-elevated">{banner}</div>
-      <div className="px-4 pt-3 pb-4">
-        <div className="flex items-start justify-between">
-          <div className="-mt-[12%] [&>*]:size-[clamp(80px,22vw,134px)]! [&>*]:text-[clamp(30px,8.5vw,51px)]! [&>*]:ring-4 [&>*]:ring-black">
+    <section className="mx-4 mt-2 overflow-hidden rounded-3xl border border-border bg-surface md:mx-0">
+      <div className="relative aspect-[3/1] w-full overflow-hidden bg-elevated">
+        {banner}
+        <div className="absolute inset-0 bg-gradient-to-t from-surface/80 to-transparent" />
+      </div>
+      <div className="px-5 pb-5">
+        <div className="flex items-end justify-between gap-3">
+          <div className="-mt-[9%] [&>*]:size-[clamp(76px,18vw,112px)]! [&>*]:text-[clamp(28px,7vw,42px)]! [&>*]:ring-4 [&>*]:ring-surface">
             {avatar}
           </div>
-          {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+          {actions ? <div className="flex items-center gap-2 pb-1">{actions}</div> : null}
         </div>
 
-        <div className="mt-3">
-          <h2 className="flex items-center gap-1 text-xl leading-6 font-extrabold">
+        <div className="mt-4">
+          <h2 className="flex items-center gap-1.5 font-display text-[28px] leading-8 font-bold tracking-tight">
             {name}
             {verified ? <VerifiedBadge variant={verified} className="size-5" /> : null}
           </h2>
-          <p className="text-[15px] text-muted">@{handle}</p>
+          <p className="mt-0.5 text-[14px] text-muted">@{handle}</p>
         </div>
 
-        {bio ? <p className="mt-3 text-[15px] leading-5">{bio}</p> : null}
+        {bio ? <p className="mt-3 text-[15px] leading-6 text-foreground/85">{bio}</p> : null}
 
-        <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[15px] text-muted">
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[14px] text-muted">
           {meta.map(({ icon: Icon, content }, index) => (
-            <li key={index} className="flex items-center gap-1">
-              <Icon className="size-[18px]" /> {content}
+            <li key={index} className="flex items-center gap-1.5">
+              <Icon className="size-4" /> {content}
             </li>
           ))}
         </ul>
 
-        <div className="mt-3 flex gap-5 text-[15px]">
+        <div className="mt-4 flex flex-wrap gap-2">
           {stats.map((stat) => (
-            <span key={stat.key ?? String(stat.label)} className="text-muted">
-              <span className="font-bold text-foreground">{stat.value}</span> {stat.label}
+            <span
+              key={stat.key ?? String(stat.label)}
+              className="rounded-xl border border-border bg-background/50 px-3.5 py-2 text-[13px] text-muted"
+            >
+              <span className="mr-1 font-display text-[17px] font-semibold text-foreground">{stat.value}</span>
+              {stat.label}
             </span>
           ))}
         </div>

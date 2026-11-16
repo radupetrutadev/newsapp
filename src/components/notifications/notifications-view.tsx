@@ -22,11 +22,11 @@ const tabs: { id: NotificationFilter; label: string }[] = [
 ];
 
 const kinds: Record<NotificationKind, { icon: LucideIcon; className: string }> = {
-  breaking: { icon: Zap, className: "text-live fill-live" },
-  like: { icon: Heart, className: "text-like fill-like" },
-  follow: { icon: UserPlus, className: "text-accent fill-accent" },
-  reply: { icon: MessageCircle, className: "text-accent" },
-  mention: { icon: AtSign, className: "text-accent" },
+  breaking: { icon: Zap, className: "bg-live/12 text-live [&>svg]:fill-live" },
+  like: { icon: Heart, className: "bg-like/12 text-like [&>svg]:fill-like" },
+  follow: { icon: UserPlus, className: "bg-accent/12 text-accent" },
+  reply: { icon: MessageCircle, className: "bg-accent/12 text-accent" },
+  mention: { icon: AtSign, className: "bg-accent/12 text-accent" },
 };
 
 async function fetchNotifications(filter: NotificationFilter, cursor: string | null): Promise<Page<AppNotification>> {
@@ -88,12 +88,20 @@ function NotificationList({
 
   return (
     <>
-      <ul>
+      <ul className="space-y-2 px-4 md:px-0">
         {list.items.map((notification) => (
           <NotificationItem key={notification.id} notification={notification} />
         ))}
       </ul>
-      <PagedListFooter list={list} noun="notifications" placeholder={<ArticleSkeleton />} />
+      <PagedListFooter
+        list={list}
+        noun="notifications"
+        placeholder={
+          <div className="px-4 pt-2 md:px-0">
+            <ArticleSkeleton />
+          </div>
+        }
+      />
     </>
   );
 }
@@ -115,12 +123,14 @@ function NotificationItem({ notification }: { notification: AppNotification }) {
       <Link
         href={notification.href}
         className={cn(
-          "flex gap-3 border-b border-border px-4 py-3 transition-colors hover:bg-white/[0.03]",
-          notification.unread && "bg-accent/[0.04]",
+          "flex gap-3.5 rounded-2xl border p-4 transition-colors",
+          notification.unread
+            ? "border-accent/30 bg-accent/[0.05] hover:bg-accent/[0.08]"
+            : "border-border bg-surface hover:border-border-strong hover:bg-surface-hover",
         )}
       >
-        <div className="flex w-10 shrink-0 justify-end pt-0.5">
-          <Icon className={cn("size-7", className)} strokeWidth={breaking ? 1.5 : 2} />
+        <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", className)}>
+          <Icon className="size-5" strokeWidth={breaking ? 1.5 : 2} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -129,9 +139,9 @@ function NotificationItem({ notification }: { notification: AppNotification }) {
             ))}
             <TimeAgo iso={notification.updatedAt} className="ml-auto self-start text-[13px] text-muted" />
           </div>
-          <p className={cn("mt-2 text-[15px] leading-5", breaking && "font-bold")}>{notification.text}</p>
+          <p className={cn("mt-2.5 text-[15px] leading-5", breaking && "font-display text-[16px] font-semibold")}>{notification.text}</p>
           {notification.preview ? (
-            <p className="mt-1 line-clamp-2 text-[15px] leading-5 text-muted">{notification.preview}</p>
+            <p className="mt-1 line-clamp-2 text-[14px] leading-5 text-muted">{notification.preview}</p>
           ) : null}
         </div>
         {notification.unread ? (

@@ -1,24 +1,27 @@
 @import "tailwindcss";
 
 /*
- * Pulse design tokens — dark mode only, modelled on X's "Lights out" theme.
+ * Pulse design tokens: dark only, warm black with an orange accent.
  * Every color utility in the app (bg-surface, text-muted, border-border, …)
  * resolves to one of these.
  */
 @theme {
-  --color-background: #000000;
-  --color-foreground: #e7e9ea;
-  --color-muted: #71767b;
-  --color-border: #2f3336;
-  --color-surface: #16181c;
-  --color-surface-hover: #1d1f23;
-  --color-elevated: #202327;
-  --color-accent: #1d9bf0;
-  --color-accent-hover: #1a8cd8;
-  --color-like: #f91880;
-  --color-repost: #00ba7c;
-  --color-live: #f4212e;
-  --color-gold: #e2b719;
+  --color-background: #0a0908;
+  --color-foreground: #f6f1ea;
+  --color-muted: #978d84;
+  --color-border: #27221f;
+  --color-border-strong: #3d3531;
+  --color-surface: #131110;
+  --color-surface-hover: #1a1715;
+  --color-elevated: #221e1b;
+  --color-accent: #ff6a1a;
+  --color-accent-hover: #ff8540;
+  /* Text and icons on an accent background. */
+  --color-on-accent: #0a0908;
+  --color-like: #ff4d2e;
+  --color-repost: #ffb02e;
+  --color-live: #ff3b30;
+  --color-danger: #ff6a5f;
 
   --animate-live-ping: live-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
   --animate-pop: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -69,6 +72,8 @@
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Headlines and page titles. */
+  --font-display: var(--font-bricolage), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 @utility no-scrollbar {
@@ -79,9 +84,19 @@
 }
 
 @utility glass {
-  background-color: rgb(0 0 0 / 0.65);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background-color: rgb(10 9 8 / 0.72);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
+/* Small uppercase labels: categories, timestamps, section kickers. */
+@utility kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 @layer base {
@@ -92,16 +107,23 @@
 
   body {
     background-color: var(--color-background);
+    /* A low orange glow behind the top of every page. */
+    background-image: radial-gradient(
+      ellipse 90% 520px at 50% -160px,
+      rgb(255 106 26 / 0.11),
+      transparent 70%
+    );
+    background-repeat: no-repeat;
     color: var(--color-foreground);
   }
 
   ::selection {
-    background-color: rgb(29 155 240 / 0.35);
+    background-color: rgb(255 106 26 / 0.35);
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #2f3336 transparent;
+    scrollbar-color: var(--color-border-strong) transparent;
   }
 
   :focus-visible {

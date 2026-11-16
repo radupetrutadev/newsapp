@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Bookmark,
-  ChartNoAxesColumn,
-  Heart,
-  MessageCircle,
-  Repeat2,
-  Upload,
-  type LucideIcon,
-} from "lucide-react";
+import { Bookmark, Eye, Heart, MessageCircle, Repeat2, Share, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useAdjustedCount, useToggle } from "@/lib/store/engagement";
 import { toast } from "@/lib/store/toast";
@@ -17,56 +9,46 @@ import { cn, formatCount } from "@/lib/utils";
 
 type Tone = "accent" | "repost" | "like";
 
-const tones: Record<Tone, { text: string; bg: string }> = {
-  accent: { text: "group-hover/action:text-accent", bg: "group-hover/action:bg-accent/10" },
-  repost: { text: "group-hover/action:text-repost", bg: "group-hover/action:bg-repost/10" },
-  like: { text: "group-hover/action:text-like", bg: "group-hover/action:bg-like/10" },
-};
-
 const activeText: Record<Tone, string> = {
   accent: "text-accent",
   repost: "text-repost",
   like: "text-like",
 };
 
+const activeBg: Record<Tone, string> = {
+  accent: "bg-accent/10",
+  repost: "bg-repost/10",
+  like: "bg-like/10",
+};
+
 function ActionInner({
   icon: Icon,
   count,
-  tone,
   active,
   filled,
 }: {
   icon: LucideIcon;
   count?: number;
-  tone: Tone;
   active?: boolean;
   filled?: boolean;
 }) {
   return (
     <>
-      <span
-        className={cn(
-          "-m-2 flex size-[34px] items-center justify-center rounded-full transition-colors",
-          tones[tone].bg,
-        )}
-      >
-        <Icon
-          key={active ? "on" : "off"}
-          className={cn("size-[18px]", active && filled && "animate-pop fill-current")}
-          strokeWidth={active ? 2.3 : 1.9}
-        />
-      </span>
-      {count ? (
-        <span className="min-w-[2ch] pl-1 text-[13px] tabular-nums">{formatCount(count)}</span>
-      ) : null}
+      <Icon
+        key={active ? "on" : "off"}
+        className={cn("size-[18px]", active && filled && "animate-pop fill-current")}
+        strokeWidth={active ? 2.3 : 1.9}
+      />
+      {count ? <span className="text-[13px] font-medium tabular-nums">{formatCount(count)}</span> : null}
     </>
   );
 }
 
-const actionClass = (tone: Tone, active?: boolean) =>
+const actionClass = (tone: Tone, active?: boolean, square?: boolean) =>
   cn(
-    "group/action relative flex items-center transition-colors",
-    active ? activeText[tone] : cn("text-muted", tones[tone].text),
+    "relative flex h-9 items-center gap-1.5 rounded-full transition-colors",
+    square ? "w-9 justify-center" : "min-w-9 justify-center px-2.5",
+    active ? cn(activeText[tone], activeBg[tone]) : "text-muted hover:bg-white/[0.06] hover:text-foreground",
   );
 
 export function ArticleActions({
@@ -75,7 +57,7 @@ export function ArticleActions({
   className,
 }: {
   article: Article;
-  /** "detail" spreads the actions across the full width, like a tweet page. */
+  /** "detail" (the story page) leaves the counts out; they're shown above it. */
   size?: "default" | "detail";
   className?: string;
 }) {
@@ -101,20 +83,16 @@ export function ArticleActions({
   }
 
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between",
-        detail ? "px-1" : "max-w-[425px] sm:max-w-none",
-        className,
-      )}
-    >
-      <Link
-        href={`/article/${article.slug}#replies`}
-        aria-label={`${article.stats.comments} replies`}
-        className={actionClass("accent")}
+    <div className={cn("flex items-center gap-1", className)}>
+      <button
+        type="button"
+        aria-label={liked ? "Unlike" : "Like"}
+        aria-pressed={liked}
+        onClick={toggleLike}
+        className={actionClass("like", liked)}
       >
-        <ActionInner icon={MessageCircle} count={detail ? undefined : article.stats.comments} tone="accent" />
-      </Link>
+        <ActionInner icon={Heart} count={detail ? undefined : likes} active={liked} filled />
+      </button>
       <button
         type="button"
         aria-label={reposted ? "Undo repost" : "Repost"}
@@ -124,34 +102,25 @@ export function ArticleActions({
         }}
         className={actionClass("repost", reposted)}
       >
-        <ActionInner
-          icon={Repeat2}
-          count={detail ? undefined : reposts}
-          tone="repost"
-          active={reposted}
-        />
+        <ActionInner icon={Repeat2} count={detail ? undefined : reposts} active={reposted} />
       </button>
-      <button
-        type="button"
-        aria-label={liked ? "Unlike" : "Like"}
-        aria-pressed={liked}
-        onClick={toggleLike}
-        className={actionClass("like", liked)}
+      <Link
+        href={`/article/${article.slug}#replies`}
+        aria-label={`${article.stats.comments} replies`}
+        className={actionClass("accent")}
       >
-        <ActionInner
-          icon={Heart}
-          count={detail ? undefined : likes}
-          tone="like"
-          active={liked}
-          filled
-        />
-      </button>
-      {detail ? null : (
-        <span className={cn(actionClass("accent"), "hidden min-[400px]:flex")} title="Views">
-          <ActionInner icon={ChartNoAxesColumn} count={article.stats.views} tone="accent" />
-        </span>
-      )}
-      <div className="flex items-center gap-3">
+        <ActionInner icon={MessageCircle} count={detail ? undefined : article.stats.comments} />
+      </Link>
+
+      <div className="ml-auto flex items-center gap-1">
+        {detail || article.stats.views === 0 ? null : (
+          <span
+            className="mr-1.5 hidden items-center gap-1.5 text-[12px] text-muted tabular-nums min-[400px]:flex"
+            title="Reads"
+          >
+            <Eye className="size-4" /> {formatCount(article.stats.views)}
+          </span>
+        )}
         <button
           type="button"
           aria-label={bookmarked ? "Remove bookmark" : "Bookmark"}
@@ -160,12 +129,12 @@ export function ArticleActions({
             if (!toggleBookmark()) return;
             toast(bookmarked ? "Removed from your Bookmarks" : "Added to your Bookmarks");
           }}
-          className={actionClass("accent", bookmarked)}
+          className={actionClass("accent", bookmarked, true)}
         >
-          <ActionInner icon={Bookmark} tone="accent" active={bookmarked} filled />
+          <ActionInner icon={Bookmark} active={bookmarked} filled />
         </button>
-        <button type="button" aria-label="Share" onClick={share} className={actionClass("accent")}>
-          <ActionInner icon={Upload} tone="accent" />
+        <button type="button" aria-label="Share" onClick={share} className={actionClass("accent", false, true)}>
+          <ActionInner icon={Share} />
         </button>
       </div>
     </div>

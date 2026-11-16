@@ -20,7 +20,7 @@ function GitHubIcon() {
 }
 
 const buttonClass =
-  "flex h-10 w-full items-center justify-center gap-2 rounded-full bg-white text-[15px] font-semibold text-[#0f1419] transition-colors hover:bg-[#e6e6e6]";
+  "flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-border-strong bg-surface text-[15px] font-semibold text-foreground transition-colors hover:border-muted/50 hover:bg-surface-hover";
 
 export function OAuthButtons({ verb = "Sign in" }: { verb?: string }) {
   return (
@@ -37,7 +37,7 @@ export function OAuthButtons({ verb = "Sign in" }: { verb?: string }) {
 
 export function OrDivider() {
   return (
-    <div className="flex items-center gap-2 py-1 text-[15px] text-foreground">
+    <div className="kicker flex items-center gap-3 py-2 text-muted">
       <span className="h-px flex-1 bg-border" />
       or
       <span className="h-px flex-1 bg-border" />

@@ -22,14 +22,14 @@ export function Switch({
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60",
-        checked ? "bg-accent" : "bg-[#3e4144]",
+        "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors disabled:opacity-60",
+        checked ? "border-accent bg-accent" : "border-border-strong bg-elevated",
       )}
     >
       <span
         className={cn(
-          "inline-block size-5 rounded-full bg-white shadow-md transition-transform",
-          checked ? "translate-x-[22px]" : "translate-x-0.5",
+          "inline-block size-5 rounded-full shadow-md transition-transform",
+          checked ? "translate-x-[22px] bg-on-accent" : "translate-x-[3px] bg-muted",
         )}
       />
     </button>

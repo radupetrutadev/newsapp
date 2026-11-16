@@ -42,7 +42,7 @@ export function ProfileTabs({
 
   return (
     <>
-      <Tabs tabs={tabs} value={tab} onChange={setTab} />
+      <Tabs tabs={tabs} value={tab} onChange={setTab} className="pt-4" />
       {loading ? <FeedSkeleton count={2} /> : null}
       {!loading && tab === "likes" ? (
         liked.length > 0 ? (
@@ -68,7 +68,7 @@ export function ProfileTabs({
       ) : null}
       {!loading && tab === "following" ? (
         followedSources.length + followed.length > 0 ? (
-          <div>
+          <div className="mx-4 rounded-2xl border border-border bg-surface p-1.5 md:mx-0">
             {followedSources.length > 0 && followed.length > 0 ? <ListHeading>Sources</ListHeading> : null}
             {followedSources.map((source) => (
               <SourceRow key={source.id} source={source} showBio />
@@ -84,7 +84,7 @@ export function ProfileTabs({
             title="Not following anyone yet"
             description="Follow publishers to fill your Following feed with their latest stories."
             action={
-              <Link href="/explore#sources" className={buttonClasses({ variant: "accent", size: "lg" })}>
+              <Link href="/explore#sources" className={buttonClasses({ variant: "primary", size: "lg" })}>
                 Find sources
               </Link>
             }
@@ -96,7 +96,7 @@ export function ProfileTabs({
 }
 
 function ListHeading({ children }: { children: React.ReactNode }) {
-  return <h3 className="px-4 pt-4 pb-1 text-[15px] font-bold text-muted">{children}</h3>;
+  return <h3 className="kicker px-4 pt-3 pb-1 text-muted">{children}</h3>;
 }
 
 /** Sources and people the reader follows. */

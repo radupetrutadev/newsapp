@@ -7,11 +7,11 @@ export default function NotFound() {
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
       <LogoMark className="size-12" />
       <div>
-        <p className="text-[64px] leading-none font-extrabold tracking-tight">404</p>
-        <h1 className="mt-3 text-xl font-bold">Hmm… this page doesn&apos;t exist.</h1>
+        <p className="font-display text-[96px] leading-none font-bold tracking-[-0.05em] text-accent">404</p>
+        <h1 className="mt-4 font-display text-[24px] font-semibold tracking-tight">This page doesn&apos;t exist.</h1>
         <p className="mt-1 text-[15px] text-muted">Try searching for something else.</p>
       </div>
-      <Link href="/" className={buttonClasses({ variant: "accent", size: "lg" })}>
+      <Link href="/" className={buttonClasses({ variant: "primary", size: "lg" })}>
         Back to your feed
       </Link>
     </main>

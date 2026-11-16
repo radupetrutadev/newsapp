@@ -136,7 +136,7 @@ export const mockSources: Source[] = [
       "The Pulse newsroom. Breaking alerts, live coverage and the stories everyone is talking about.",
     website: null,
     category: "world",
-    color: "#1d9bf0",
+    color: "#ff6a1a",
     logoUrl: null,
     verified: true,
     followersCount: 6_400_000,

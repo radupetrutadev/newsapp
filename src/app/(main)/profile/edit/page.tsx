@@ -32,7 +32,7 @@ async function EditProfile() {
         title="Sign in to edit your profile"
         description="Your name, bio and photo show on your replies and your profile page."
         action={
-          <Link href="/login" className={buttonClasses({ variant: "accent", size: "lg" })}>
+          <Link href="/login" className={buttonClasses({ variant: "primary", size: "lg" })}>
             Sign in
           </Link>
         }
@@ -44,7 +44,7 @@ async function EditProfile() {
     <>
       <ProfileForm viewer={viewer} />
       {viewer.isDemo ? (
-        <div className="mx-4 mb-4 flex gap-3 rounded-2xl border border-accent/30 bg-accent/[0.06] p-4 text-[15px]">
+        <div className="mx-4 mb-4 flex gap-3 rounded-2xl border border-accent/30 bg-accent/[0.06] p-4 text-[14px] leading-5 md:mx-0">
           <Info className="mt-0.5 size-5 shrink-0 text-accent" />
           <p className="text-foreground/90">
             This is the demo reader, so changes aren&apos;t saved. Connect Supabase to edit a real profile and

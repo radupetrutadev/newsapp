@@ -53,7 +53,7 @@ export function buildDigestEmail({ name, stories, siteName, siteUrl, unsubscribe
       text: `${index + 1}. ${story.title}\n   ${meta}\n   ${url}`,
       html: `
         <tr><td style="padding:16px 0;border-top:1px solid #e5e7eb">
-          <div style="font-size:13px;color:#6b7280">${index + 1} · ${escapeHtml(meta)}</div>
+          <div style="font-size:13px;color:#6b7280"><span style="color:#ff6a1a;font-weight:700">${String(index + 1).padStart(2, "0")}</span> · ${escapeHtml(meta)}</div>
           <a href="${escapeHtml(url)}" style="display:block;margin-top:4px;font-size:18px;line-height:24px;font-weight:700;color:#0f1419;text-decoration:none">${escapeHtml(story.title)}</a>
           ${summary ? `<div style="margin-top:6px;font-size:15px;line-height:21px;color:#374151">${escapeHtml(summary)}</div>` : ""}
         </td></tr>`,
@@ -79,7 +79,7 @@ export function buildDigestEmail({ name, stories, siteName, siteUrl, unsubscribe
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6">
     <tr><td align="center" style="padding:24px 12px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden">
-        <tr><td style="background:#000000;padding:20px 24px;color:#ffffff;font-size:22px;font-weight:800">${escapeHtml(siteName)}</td></tr>
+        <tr><td style="background:#0a0908;padding:20px 24px;color:#f6f1ea;font-size:22px;font-weight:800;letter-spacing:-0.02em">${escapeHtml(siteName.toLowerCase())}<span style="color:#ff6a1a">.</span></td></tr>
         <tr><td style="padding:24px 24px 8px;color:#0f1419;font-size:15px;line-height:22px">
           <p style="margin:0 0 8px">${escapeHtml(greeting)}</p>
           <p style="margin:0">${escapeHtml(intro)}</p>
@@ -89,7 +89,7 @@ export function buildDigestEmail({ name, stories, siteName, siteUrl, unsubscribe
           </table>
         </td></tr>
         <tr><td style="padding:8px 24px 24px">
-          <a href="${escapeHtml(link("/"))}" style="display:inline-block;background:#1d9bf0;color:#ffffff;font-weight:700;font-size:15px;padding:10px 20px;border-radius:9999px;text-decoration:none">Read more on ${escapeHtml(siteName)}</a>
+          <a href="${escapeHtml(link("/"))}" style="display:inline-block;background:#ff6a1a;color:#0a0908;font-weight:700;font-size:15px;padding:12px 20px;border-radius:12px;text-decoration:none">Read more on ${escapeHtml(siteName)}</a>
         </td></tr>
       </table>
       <p style="max-width:600px;margin:16px auto 0;color:#6b7280;font-size:12px;line-height:18px">

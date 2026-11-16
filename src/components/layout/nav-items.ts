@@ -1,21 +1,23 @@
-import { Bell, Bookmark, Hash, House, Search, Settings, User, type LucideIcon } from "lucide-react";
+import { Bell, Bookmark, Compass, Hash, Newspaper, Settings, User, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Shown in the mobile bottom bar as well as the sidebar. */
+  /** How the top bar shows it: a text link, an icon button, or not at all (it's in the account menu). */
+  bar?: "link" | "icon";
+  /** Shown in the phone dock. */
   mobile?: boolean;
 }
 
 export const navItems: NavItem[] = [
-  { href: "/", label: "Feed", icon: House, mobile: true },
-  { href: "/explore", label: "Explore", icon: Search, mobile: true },
-  { href: "/notifications", label: "Notifications", icon: Bell, mobile: true },
-  { href: "/bookmarks", label: "Bookmarks", icon: Bookmark, mobile: true },
-  { href: "/topics", label: "Topics", icon: Hash },
+  { href: "/", label: "Feed", icon: Newspaper, bar: "link", mobile: true },
+  { href: "/explore", label: "Explore", icon: Compass, bar: "link", mobile: true },
+  { href: "/topics", label: "Topics", icon: Hash, bar: "link" },
+  { href: "/bookmarks", label: "Bookmarks", icon: Bookmark, bar: "link", mobile: true },
+  { href: "/notifications", label: "Notifications", icon: Bell, bar: "icon", mobile: true },
   { href: "/profile", label: "Profile", icon: User, mobile: true },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings", label: "Settings", icon: Settings, bar: "icon" },
 ];
 
 /** Whether `href` is the current section. Nothing is while the pathname isn't known (null). */

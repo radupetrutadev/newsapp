@@ -23,11 +23,11 @@ export async function AuthNotice({ searchParams }: { searchParams: SearchParams 
   if (!notice) return null;
 
   return notice.tone === "error" ? (
-    <p role="alert" className="rounded-md border border-live/40 bg-live/10 px-3 py-2 text-[14px] text-[#ff6b75]">
+    <p role="alert" className="rounded-xl border border-live/40 bg-live/10 px-3.5 py-2.5 text-[14px] text-danger">
       {notice.text}
     </p>
   ) : (
-    <p role="status" className="rounded-md border border-repost/40 bg-repost/10 px-3 py-2 text-[14px] text-repost">
+    <p role="status" className="rounded-xl border border-repost/40 bg-repost/10 px-3.5 py-2.5 text-[14px] text-repost">
       {notice.text}
     </p>
   );

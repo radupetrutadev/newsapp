@@ -8,18 +8,18 @@ export function Toaster() {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex flex-col items-center gap-2 px-4 sm:bottom-6"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(92px+env(safe-area-inset-bottom))] z-50 flex flex-col items-center gap-2 px-4 md:bottom-6"
     >
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className="animate-toast-in flex items-center gap-4 rounded-md bg-accent px-4 py-3 text-[15px] font-medium text-white shadow-[0_0_15px_rgba(29,155,240,0.35)]"
+          className="animate-toast-in flex items-center gap-4 rounded-xl border border-border-strong bg-elevated py-3 pr-4 pl-3 text-[14px] font-medium text-foreground shadow-[0_16px_40px_rgb(0_0_0/0.6)] before:h-5 before:w-1 before:rounded-full before:bg-accent"
         >
           {toast.message}
           {toast.action ? (
             <Link
               href={toast.action.href}
-              className="pointer-events-auto font-bold whitespace-nowrap underline-offset-2 hover:underline"
+              className="pointer-events-auto font-semibold whitespace-nowrap text-accent underline-offset-2 hover:underline"
             >
               {toast.action.label}
             </Link>

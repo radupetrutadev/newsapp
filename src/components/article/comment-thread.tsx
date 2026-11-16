@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag, Heart, MessageCircle, Repeat2, Trash2, X } from "lucide-react";
+import { Flag, Heart, MessageCircle, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { UserAvatar } from "@/components/ui/avatar";
@@ -100,7 +100,12 @@ export function CommentThread({
   };
 
   return (
-    <section id="replies" aria-label="Replies" className="scroll-mt-16">
+    <section
+      id="replies"
+      aria-label="Replies"
+      className="mx-4 mt-6 scroll-mt-24 rounded-2xl border border-border bg-surface md:mx-0 md:scroll-mt-40"
+    >
+      <h2 className="px-4 pt-5 pb-1 font-display text-[22px] font-semibold tracking-tight sm:px-5">Replies</h2>
       {viewer ? (
         <Composer
           viewer={viewer}
@@ -130,9 +135,9 @@ export function CommentThread({
           }}
         />
       ) : (
-        <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-4">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-4 sm:px-5">
           <p className="text-[15px] text-muted">Sign in to join the conversation.</p>
-          <Link href="/login" className={buttonClasses({ variant: "accent", size: "sm" })}>
+          <Link href="/login" className={buttonClasses({ variant: "primary", size: "sm" })}>
             Sign in
           </Link>
         </div>
@@ -143,9 +148,11 @@ export function CommentThread({
           No replies yet. Start the conversation.
         </p>
       ) : (
-        threads.map((thread) => (
-          <ThreadView key={thread.root.id} thread={thread} focused={focused} handlers={handlers} />
-        ))
+        <div className="divide-y divide-border">
+          {threads.map((thread) => (
+            <ThreadView key={thread.root.id} thread={thread} focused={focused} handlers={handlers} />
+          ))}
+        </div>
       )}
 
       <DeleteDialog
@@ -198,7 +205,7 @@ function ThreadView({
   const more = replies.length - shown.length;
 
   return (
-    <div className="border-b border-border">
+    <div className="py-1">
       <Entry comment={root} threaded={replies.length > 0} handlers={handlers} />
       {shown.map((reply) => (
         <Entry key={reply.id} comment={reply} nested handlers={handlers} />
@@ -207,7 +214,7 @@ function ThreadView({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="block w-full py-3 pr-4 pl-[68px] text-left text-[15px] text-accent transition-colors hover:bg-white/[0.03]"
+          className="block w-full py-2.5 pr-4 pl-[68px] text-left text-[14px] font-medium text-accent hover:underline"
         >
           Show {more} more {more === 1 ? "reply" : "replies"}
         </button>
@@ -236,14 +243,14 @@ function Entry({
     return (
       <div id={`comment-${comment.id}`} className={cn("relative scroll-mt-16 py-2", padding)}>
         {threaded ? <ThreadLine top={8} /> : null}
-        <div className={cn("flex items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3 text-[15px] text-muted", threaded && "ml-[52px]")}>
+        <div className={cn("flex items-center justify-between gap-3 rounded-xl border border-dashed border-border-strong px-4 py-3 text-[14px] text-muted", threaded && "ml-[52px]")}>
           {comment.removed === "deleted"
             ? "This reply was deleted."
             : comment.removed === "hidden"
               ? "This reply was hidden after readers reported it."
               : "You reported this reply."}
           {comment.removed ? null : (
-            <button type="button" onClick={() => setRevealed(true)} className="shrink-0 font-bold text-foreground hover:underline">
+            <button type="button" onClick={() => setRevealed(true)} className="shrink-0 font-semibold text-foreground hover:underline">
               Show
             </button>
           )}
@@ -256,7 +263,7 @@ function Entry({
 }
 
 function ThreadLine({ top }: { top: number }) {
-  return <span aria-hidden className="absolute bottom-0 left-[35px] w-0.5 bg-border" style={{ top }} />;
+  return <span aria-hidden className="absolute bottom-0 left-[35px] w-0.5 rounded-full bg-border-strong" style={{ top }} />;
 }
 
 function CommentItem({
@@ -284,7 +291,7 @@ function CommentItem({
     <article
       id={`comment-${comment.id}`}
       className={cn(
-        "relative flex scroll-mt-16 gap-3 pt-3 pb-2 transition-colors hover:bg-white/[0.03] data-linked:bg-accent/[0.06]",
+        "relative flex scroll-mt-24 gap-3 pt-3 pb-1.5 data-linked:bg-accent/[0.07] md:scroll-mt-40",
         padding,
       )}
     >
@@ -295,12 +302,12 @@ function CommentItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1 text-[15px] leading-5">
           <Link href={authorHref} className="flex min-w-0 items-center gap-1">
-            <span className="truncate font-bold hover:underline">{comment.author.name}</span>
+            <span className="truncate font-semibold hover:underline">{comment.author.name}</span>
             {comment.author.verified ? <VerifiedBadge /> : null}
-            <span className="truncate text-muted">@{comment.author.handle}</span>
+            <span className="truncate text-[14px] text-muted">@{comment.author.handle}</span>
           </Link>
           <span className="text-muted">·</span>
-          <TimeAgo iso={comment.createdAt} className="shrink-0 text-muted" />
+          <TimeAgo iso={comment.createdAt} className="shrink-0 text-[13px] text-muted" />
           <span className="ml-auto pl-2">
             <MoreMenu label="More options for this reply">
               {(close) =>
@@ -338,24 +345,17 @@ function CommentItem({
             </Link>
           </p>
         ) : null}
-        <p className="mt-0.5 text-[15px] leading-5 break-words whitespace-pre-wrap">{comment.body}</p>
-        <div className="mt-2 flex max-w-[425px] justify-between text-muted">
+        <p className="mt-1 text-[15px] leading-[1.45] break-words whitespace-pre-wrap text-foreground/90">{comment.body}</p>
+        <div className="mt-1 -ml-2.5 flex items-center gap-1 text-muted">
+          <CommentLike comment={comment} />
           <button
             type="button"
             onClick={() => handlers.onReply(comment)}
             aria-label={`Reply to ${comment.author.name}`}
-            className="group/action flex items-center hover:text-accent"
+            className="flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium transition-colors hover:bg-white/[0.06] hover:text-foreground"
           >
-            <span className="-m-2 flex size-[34px] items-center justify-center rounded-full group-hover/action:bg-accent/10">
-              <MessageCircle className="size-[18px]" strokeWidth={1.9} />
-            </span>
+            <MessageCircle className="size-4" strokeWidth={1.9} /> Reply
           </button>
-          <span className="group/action flex items-center hover:text-repost">
-            <span className="-m-2 flex size-[34px] items-center justify-center rounded-full group-hover/action:bg-repost/10">
-              <Repeat2 className="size-[18px]" strokeWidth={1.9} />
-            </span>
-          </span>
-          <CommentLike comment={comment} />
         </div>
       </div>
     </article>
@@ -386,7 +386,7 @@ function Composer({
 
   return (
     <form
-      className="flex gap-3 border-b border-border px-4 pt-1 pb-3"
+      className="flex gap-3 border-b border-border px-4 pt-1 pb-4 sm:px-5"
       onSubmit={(event) => {
         event.preventDefault();
         startTransition(async () => {
@@ -403,7 +403,7 @@ function Composer({
               type="button"
               onClick={onCancelReply}
               aria-label="Reply to the story instead"
-              className="-my-1 ml-1 flex size-7 items-center justify-center rounded-full hover:bg-white/10"
+              className="-my-1 ml-1 flex size-7 items-center justify-center rounded-full hover:bg-white/[0.08]"
             >
               <X className="size-4" />
             </button>
@@ -423,7 +423,7 @@ function Composer({
           maxLength={COMMENT_MAX_LENGTH + 20}
           placeholder="Post your reply"
           aria-label="Post your reply"
-          className="w-full resize-none bg-transparent pt-4 text-xl leading-6 placeholder:text-muted focus:outline-none"
+          className="mt-3 w-full resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 text-[16px] leading-6 transition-colors placeholder:text-muted focus:border-accent focus:outline-none"
         />
         <div className="flex items-center justify-end gap-3 pt-2">
           {body ? (
@@ -434,13 +434,13 @@ function Composer({
                 </span>
               ) : null}
               <svg viewBox="0 0 20 20" className="size-5 -rotate-90" aria-hidden>
-                <circle cx="10" cy="10" r="8" fill="none" stroke="#2f3336" strokeWidth="2" />
+                <circle cx="10" cy="10" r="8" fill="none" stroke="var(--color-border-strong)" strokeWidth="2" />
                 <circle
                   cx="10"
                   cy="10"
                   r="8"
                   fill="none"
-                  stroke={remaining < 0 ? "#f4212e" : remaining <= 20 ? "#ffd400" : "#1d9bf0"}
+                  stroke={remaining < 0 ? "var(--color-live)" : remaining <= 20 ? "var(--color-repost)" : "var(--color-accent)"}
                   strokeWidth="2"
                   strokeDasharray={`${progress * 50.27} 50.27`}
                 />
@@ -449,7 +449,7 @@ function Composer({
           ) : null}
           <Button
             type="submit"
-            variant="accent"
+            variant="primary"
             disabled={!body.trim() || remaining < 0 || pending}
           >
             {pending ? "Replying…" : "Reply"}
@@ -470,12 +470,13 @@ function CommentLike({ comment }: { comment: Comment }) {
       aria-label={liked ? "Unlike" : "Like"}
       aria-pressed={liked}
       onClick={() => toggle()}
-      className={cn("group/action flex items-center", liked ? "text-like" : "hover:text-like")}
+      className={cn(
+        "flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-full px-2.5 transition-colors",
+        liked ? "bg-like/10 text-like" : "hover:bg-white/[0.06] hover:text-foreground",
+      )}
     >
-      <span className="-m-2 flex size-[34px] items-center justify-center rounded-full group-hover/action:bg-like/10">
-        <Heart className={cn("size-[18px]", liked && "animate-pop fill-current")} strokeWidth={1.9} />
-      </span>
-      {likes > 0 ? <span className="pl-1 text-[13px] tabular-nums">{formatCount(likes)}</span> : null}
+      <Heart key={liked ? "on" : "off"} className={cn("size-4", liked && "animate-pop fill-current")} strokeWidth={1.9} />
+      {likes > 0 ? <span className="text-[13px] font-medium tabular-nums">{formatCount(likes)}</span> : null}
     </button>
   );
 }
@@ -577,10 +578,10 @@ function ReportDialog({
           {REPORT_REASONS.map((option) => (
             <label
               key={option.value}
-              className="-mx-2 flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-white/[0.03]"
+              className="-mx-2 flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-white/[0.04] has-checked:bg-accent/10"
             >
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-bold">{option.label}</span>
+                <span className="block text-[15px] font-semibold">{option.label}</span>
                 <span className="block text-[13px] text-muted">{option.description}</span>
               </span>
               <input

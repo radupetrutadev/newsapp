@@ -25,7 +25,7 @@ export function BookmarksView({ articles }: { articles: Article[] }) {
         title="Sign in to see your bookmarks"
         description="Bookmarks are saved to your account, so they're there on every device."
         action={
-          <Link href="/login" className={buttonClasses({ variant: "accent", size: "lg" })}>
+          <Link href="/login" className={buttonClasses({ variant: "primary", size: "lg" })}>
             Sign in
           </Link>
         }
@@ -40,7 +40,7 @@ export function BookmarksView({ articles }: { articles: Article[] }) {
         title="Save stories for later"
         description="Bookmark stories to easily find them again in the future. Tap the bookmark icon on any story."
         action={
-          <Link href="/" className={buttonClasses({ variant: "accent", size: "lg" })}>
+          <Link href="/" className={buttonClasses({ variant: "primary", size: "lg" })}>
             Browse the feed
           </Link>
         }

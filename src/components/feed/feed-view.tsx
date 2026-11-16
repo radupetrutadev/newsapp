@@ -6,12 +6,13 @@ import { Suspense, useState, type ReactNode } from "react";
 import { iconButton, PageHeader } from "@/components/layout/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LogoMark } from "@/components/ui/logo";
+import { Logo } from "@/components/ui/logo";
 import { FeedSkeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { categoryName } from "@/lib/categories";
 import type { FeedPage } from "@/lib/feeds";
 import { useEngagement } from "@/lib/store/engagement";
+import { useNow } from "@/lib/store/now";
 import { useSettings } from "@/lib/store/settings";
 import type { Article } from "@/lib/types";
 import { BreakingBanner } from "./breaking-banner";
@@ -25,6 +26,8 @@ const tabs: { id: FeedTab; label: string }[] = [
   { id: "following", label: "Following" },
 ];
 
+const today = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+
 export function FeedView({
   firstPage,
   breaking,
@@ -37,7 +40,7 @@ export function FeedView({
   firstPage: Promise<FeedPage | null> | null;
   /** The newest breaking story, for the banner. */
   breaking: Article | null;
-  /** Rendered top-left on mobile, where the sidebar is hidden. */
+  /** Rendered top-left on phones, where the top bar is hidden. */
   mobileAvatar?: ReactNode;
 }) {
   const [tab, setTab] = useState<FeedTab>("for-you");
@@ -56,7 +59,7 @@ export function FeedView({
           title="Follow sources you trust"
           description="Stories from the publishers you follow show up here, newest first."
           action={
-            <Link href="/explore#sources" className={buttonClasses({ variant: "accent", size: "lg" })}>
+            <Link href="/explore#sources" className={buttonClasses({ variant: "primary", size: "lg" })}>
               Find sources
             </Link>
           }
@@ -74,12 +77,12 @@ export function FeedView({
         />
       ),
     end: (
-      <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
-        <CircleCheck className="size-8 text-accent" />
-        <p className="text-[15px] font-bold">You&apos;re all caught up</p>
-        <p className="text-[13px] text-muted">
-          New stories land here the moment they&apos;re published.
-        </p>
+      <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">
+        <span className="flex size-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+          <CircleCheck className="size-6" />
+        </span>
+        <p className="mt-2 font-display text-[19px] font-semibold tracking-tight">You&apos;re all caught up</p>
+        <p className="text-[14px] text-muted">New stories land here the moment they&apos;re published.</p>
       </div>
     ),
   };
@@ -87,17 +90,19 @@ export function FeedView({
 
   return (
     <>
+      <Masthead />
+
       <PageHeader>
-        <div className="flex h-[53px] items-center justify-between px-4 sm:hidden">
-          <div className="w-9">{mobileAvatar}</div>
+        <div className="flex h-14 items-center justify-between px-4 md:hidden">
+          <div className="w-10">{mobileAvatar}</div>
           <Link href="/" aria-label="Pulse home">
-            <LogoMark className="size-7" />
+            <Logo />
           </Link>
           <Link href="/settings" aria-label="Settings" className={iconButton}>
             <Settings className="size-5" />
           </Link>
         </div>
-        <Tabs tabs={tabs} value={tab} onChange={setTab} className="border-b-0" />
+        <Tabs tabs={tabs} value={tab} onChange={setTab} className="pt-1 md:pt-3" />
       </PageHeader>
 
       <CategoryChips value={category} onChange={setCategory} />
@@ -114,5 +119,19 @@ export function FeedView({
         )}
       </Suspense>
     </>
+  );
+}
+
+/** Today's date and the page title, above the feed on tablets and up. */
+function Masthead() {
+  // The page is prerendered, so the date is only filled in once it runs in the browser.
+  const now = useNow();
+  return (
+    <div className="hidden pt-8 pb-2 md:block">
+      <p className="kicker h-4 text-accent">{now ? today.format(now) : null}</p>
+      <h1 className="mt-2 font-display text-[40px] leading-[1.05] font-bold tracking-[-0.035em]">
+        Today&apos;s briefing
+      </h1>
+    </div>
   );
 }

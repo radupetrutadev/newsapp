@@ -16,36 +16,38 @@ export default async function TopicsPage() {
     <>
       <PageHeader title="Topics" subtitle="Follow topics to shape your feed" back="/" />
 
-      <div className="border-b border-border px-4 py-5">
-        <h2 className="text-[23px] leading-7 font-extrabold tracking-tight">
+      <div className="px-4 pt-4 pb-5 md:px-0">
+        <h2 className="font-display text-[28px] leading-8 font-semibold tracking-tight text-balance">
           What do you want to read about?
         </h2>
-        <p className="mt-1 text-[15px] text-muted">
+        <p className="mt-2 text-[15px] text-muted">
           Pick a few topics. You&apos;ll see more of them in For you, and you can change this any
           time.
         </p>
       </div>
 
-      <ul>
+      <ul className="grid gap-3 px-4 sm:grid-cols-2 md:px-0">
         {categories.map((category) => {
           const Icon = category.icon;
           const count = stats[category.slug]?.stories ?? 0;
           return (
-            <li key={category.slug} className="relative border-b border-border">
-              <Link
-                href={`/topics/${category.slug}`}
-                className="absolute inset-0"
-                aria-label={category.name}
-              />
-              <div className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-white/[0.03]">
-                <div className="relative size-14 shrink-0 overflow-hidden rounded-xl">
-                  <Cover seed={category.slug} category={category.slug} showIcon={false} className="absolute inset-0" />
-                  <Icon className="absolute inset-0 m-auto size-6 text-white" />
-                </div>
+            <li
+              key={category.slug}
+              className="relative overflow-hidden rounded-2xl border border-border bg-surface transition-colors hover:border-border-strong hover:bg-surface-hover"
+            >
+              <Link href={`/topics/${category.slug}`} className="absolute inset-0 rounded-2xl" aria-label={category.name} />
+              <div className="pointer-events-none relative h-20">
+                <Cover seed={category.slug} category={category.slug} showIcon={false} className="absolute inset-0" />
+                <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
+                <span className="absolute bottom-0 left-4 flex size-10 items-center justify-center rounded-xl bg-background/60 ring-1 ring-white/10 backdrop-blur">
+                  <Icon className="size-5" />
+                </span>
+              </div>
+              <div className="flex items-start gap-3 p-4 pt-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-bold">{category.name}</p>
-                  <p className="line-clamp-1 text-[15px] text-muted">{category.description}</p>
-                  <p className="text-[13px] text-muted">{storyCount(count)} today</p>
+                  <p className="font-display text-[18px] font-semibold tracking-tight">{category.name}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[13px] leading-5 text-muted">{category.description}</p>
+                  <p className="kicker mt-2 text-accent">{storyCount(count)} today</p>
                 </div>
                 <TopicFollowButton slug={category.slug} className="relative" />
               </div>

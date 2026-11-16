@@ -10,7 +10,7 @@ insert into public.sources (handle, name, description, website, category, color,
   ('marquee', 'Marquee', 'Film, music, streaming and pop culture. First looks and honest reviews.', 'https://marquee.example.com', 'entertainment', '#ec4899', true, 1220000, '2016-02-14T00:00:00.000Z'::timestamptz),
   ('greenline', 'Greenline', 'Climate, energy and environment. Reporting on the transition, from policy to the power grid.', 'https://greenline.example.com', 'climate', '#22c55e', true, 534000, '2019-04-22T00:00:00.000Z'::timestamptz),
   ('thecommons', 'The Commons', 'Nonpartisan politics and policy coverage. What changed, why it matters and what comes next.', 'https://thecommons.example.com', 'politics', '#8b5cf6', true, 811000, '2015-11-08T00:00:00.000Z'::timestamptz),
-  ('pulsedispatch', 'Pulse Dispatch', 'The Pulse newsroom. Breaking alerts, live coverage and the stories everyone is talking about.', null, 'world', '#1d9bf0', true, 6400000, '2024-01-01T00:00:00.000Z'::timestamptz)
+  ('pulsedispatch', 'Pulse Dispatch', 'The Pulse newsroom. Breaking alerts, live coverage and the stories everyone is talking about.', null, 'world', '#ff6a1a', true, 6400000, '2024-01-01T00:00:00.000Z'::timestamptz)
 on conflict (handle) do nothing;
 
 insert into public.articles (slug, source_id, title, summary, body, category, tags, is_breaking, video_url, is_sensitive, read_time_minutes, comments_count, reposts_count, likes_count, views_count, published_at) values

@@ -91,7 +91,7 @@ export const mockNotifications: MockNotification[] = [
       slug: "climate-summit-methane-deal",
       title: "Climate summit reaches last-minute deal to cut methane emissions 40% by 2035",
     },
-    source: { handle: "pulsedispatch", name: "Pulse Dispatch", color: "#1d9bf0", logo_url: null },
+    source: { handle: "pulsedispatch", name: "Pulse Dispatch", color: "#ff6a1a", logo_url: null },
   },
   {
     id: "n-002",

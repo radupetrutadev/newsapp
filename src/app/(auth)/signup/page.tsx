@@ -9,16 +9,14 @@ export const metadata: Metadata = { title: "Create your account" };
 export default function SignupPage() {
   return (
     <>
-      <h1 className="text-[40px] leading-[48px] font-extrabold tracking-tight sm:text-[64px] sm:leading-[76px]">
-        Never miss a story
-      </h1>
-      <h2 className="mt-8 text-[23px] font-extrabold sm:mt-12 sm:text-[31px]">Join today.</h2>
+      <h1 className="font-display text-[34px] leading-[1.1] font-bold tracking-[-0.03em]">Never miss a story</h1>
+      <p className="mt-2 text-[15px] text-muted">Create your account. It takes a minute.</p>
 
-      <div className="mt-6 w-full max-w-[320px] space-y-3">
+      <div className="mt-8 w-full space-y-3">
         <OAuthButtons verb="Sign up" />
         <OrDivider />
         <SignupForm />
-        <p className="text-[11px] leading-[14px] text-muted">
+        <p className="text-[12px] leading-4 text-muted">
           By signing up, you agree to the{" "}
           <Link href="/terms" className="text-accent hover:underline">
             Terms of Service
@@ -30,9 +28,9 @@ export default function SignupPage() {
           .
         </p>
         <DemoNotice />
-        <p className="pt-6 text-[15px] text-muted">
+        <p className="pt-6 text-[14px] text-muted">
           Already have an account?{" "}
-          <Link href="/login" className="text-accent hover:underline">
+          <Link href="/login" className="font-semibold text-accent hover:underline">
             Sign in
           </Link>
         </p>

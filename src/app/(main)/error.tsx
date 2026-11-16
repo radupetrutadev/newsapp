@@ -24,7 +24,7 @@ export default function Error({
             : "A temporary problem stopped this page from loading. Try again in a moment."
         }
         action={
-          <Button variant="accent" size="lg" onClick={() => retry()}>
+          <Button variant="primary" size="lg" onClick={() => retry()}>
             Try again
           </Button>
         }

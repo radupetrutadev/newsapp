@@ -13,7 +13,7 @@ export default function NotFound() {
         title="This page doesn't exist"
         description="The story or profile may have been removed, or the link might be wrong. Try searching for something else."
         action={
-          <Link href="/explore" className={buttonClasses({ variant: "accent", size: "lg" })}>
+          <Link href="/explore" className={buttonClasses({ variant: "primary", size: "lg" })}>
             Search
           </Link>
         }

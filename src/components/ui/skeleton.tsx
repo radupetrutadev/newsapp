@@ -1,23 +1,22 @@
 import { cn } from "@/lib/utils";
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-white/[0.07]", className)} />;
+  return <div className={cn("animate-pulse rounded-md bg-white/[0.06]", className)} />;
 }
 
+/** Placeholder shaped like an ArticleCard. */
 export function ArticleSkeleton() {
   return (
-    <div className="flex gap-3 border-b border-border px-4 py-3">
-      <Skeleton className="size-10 shrink-0 rounded-lg" />
-      <div className="flex-1 space-y-2.5 pt-1">
-        <Skeleton className="h-3.5 w-48" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="mt-3 aspect-video w-full rounded-2xl" />
-        <div className="flex justify-between pt-1">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-4 w-10" />
-          ))}
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <Skeleton className="aspect-[16/8] w-full rounded-none" />
+      <div className="space-y-3 p-4 sm:p-5">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="size-8 shrink-0 rounded-lg" />
+          <Skeleton className="h-3.5 w-40" />
         </div>
+        <Skeleton className="h-5 w-full" />
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-3.5 w-5/6" />
       </div>
     </div>
   );
@@ -25,7 +24,7 @@ export function ArticleSkeleton() {
 
 export function FeedSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div aria-busy="true" aria-label="Loading">
+    <div aria-busy="true" aria-label="Loading" className="space-y-3 px-4 md:px-0">
       {Array.from({ length: count }, (_, i) => (
         <ArticleSkeleton key={i} />
       ))}

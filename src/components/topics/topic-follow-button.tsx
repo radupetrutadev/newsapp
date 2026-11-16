@@ -23,14 +23,14 @@ export function TopicFollowButton({
         toggle();
       }}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-bold transition-colors",
+        "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold transition-colors",
         following
-          ? "border border-[#536471] text-foreground hover:bg-white/10"
-          : "bg-foreground text-black hover:bg-foreground/90",
+          ? "border border-border-strong bg-background/40 text-foreground hover:bg-white/[0.06]"
+          : "bg-accent text-on-accent hover:bg-accent-hover",
         className,
       )}
     >
-      {following ? <Check className="size-4" strokeWidth={3} /> : <Plus className="size-4" strokeWidth={3} />}
+      {following ? <Check className="size-4" strokeWidth={2.5} /> : <Plus className="size-4" strokeWidth={2.5} />}
       {following ? "Following" : "Follow"}
     </button>
   );

@@ -12,14 +12,10 @@ export const metadata: Metadata = { title: "Sign in" };
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <>
-      <h1 className="text-[40px] leading-[48px] font-extrabold tracking-tight sm:text-[64px] sm:leading-[76px]">
-        Happening now
-      </h1>
-      <h2 className="mt-8 text-[23px] font-extrabold sm:mt-12 sm:text-[31px]">
-        Sign in to {site.name}
-      </h2>
+      <h1 className="font-display text-[34px] leading-[1.1] font-bold tracking-[-0.03em]">Welcome back</h1>
+      <p className="mt-2 text-[15px] text-muted">Sign in to {site.name} to pick up where you left off.</p>
 
-      <div className="mt-6 w-full max-w-[320px] space-y-3">
+      <div className="mt-8 w-full space-y-3">
         <Suspense>
           <AuthNotice searchParams={searchParams} />
         </Suspense>
@@ -27,13 +23,13 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         <OrDivider />
         <LoginForm />
         <DemoNotice />
-        <p className="pt-6 text-[15px] text-muted">
+        <p className="pt-6 text-[14px] text-muted">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-accent hover:underline">
+          <Link href="/signup" className="font-semibold text-accent hover:underline">
             Sign up
           </Link>
         </p>
-        <Link href="/" className="block text-[15px] text-accent hover:underline">
+        <Link href="/" className="block text-[14px] font-medium text-muted hover:text-accent">
           Continue to the feed →
         </Link>
       </div>

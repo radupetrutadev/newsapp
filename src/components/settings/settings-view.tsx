@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { startTransition } from "react";
+import { buttonClasses } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { clearReadingHistory } from "@/lib/actions/activity";
 import { PushSetting } from "./push-setting";
@@ -135,8 +136,8 @@ export function SettingsView() {
       <SettingsSection title="Display">
         <SettingsRow
           icon={Moon}
-          title="Lights out"
-          description="Pulse is dark mode only, designed for true-black screens."
+          title="Dark theme"
+          description="Pulse is dark only: warm black with an orange accent."
           control={<Switch label="Dark mode" checked disabled onCheckedChange={() => {}} />}
         />
       </SettingsSection>
@@ -171,7 +172,7 @@ function ClearHistoryRow() {
               toast(result.ok ? "Reading history cleared" : result.error);
             });
           }}
-          className="h-8 shrink-0 rounded-full border border-border px-4 text-sm font-bold transition-colors hover:bg-white/10"
+          className={buttonClasses({ variant: "outline", size: "sm", className: "shrink-0" })}
         >
           Clear
         </button>
@@ -210,7 +211,7 @@ function ResetSection() {
               if (demo) resetEngagement();
               toast(onAccount ? "Settings reset" : "Preferences reset");
             }}
-            className="h-8 shrink-0 rounded-full border border-[#67070f] px-4 text-sm font-bold text-live transition-colors hover:bg-live/10"
+            className={buttonClasses({ variant: "danger", size: "sm", className: "shrink-0" })}
           >
             Reset
           </button>

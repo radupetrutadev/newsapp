@@ -1,9 +1,9 @@
-import { BellPlus, CalendarDays, Ellipsis, Link2 } from "lucide-react";
+import { CalendarDays, Link2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { iconButton, PageHeader } from "@/components/layout/page-header";
+import { PageHeader } from "@/components/layout/page-header";
 import { FollowButton } from "@/components/source/follow-button";
 import { FollowerCount } from "@/components/source/follower-count";
 import { ProfileHeader } from "@/components/source/profile-header";
@@ -15,7 +15,7 @@ import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { getCategory } from "@/lib/categories";
 import { getSource, getSourceHandles, getSourceStoryCount } from "@/lib/data";
 import { getFeedPage } from "@/lib/data/feeds";
-import { cn, formatMonthYear, hostname, storyCount } from "@/lib/utils";
+import { formatMonthYear, hostname, storyCount } from "@/lib/utils";
 
 export async function generateStaticParams() {
   return (await getSourceHandles()).map((handle) => ({ handle }));
@@ -56,7 +56,7 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
         title={
           <span className="flex items-center gap-1">
             <span className="truncate">{source.name}</span>
-            {source.verified ? <VerifiedBadge variant="gold" /> : null}
+            {source.verified ? <VerifiedBadge variant="source" /> : null}
           </span>
         }
         subtitle={storyCount(stories)}
@@ -65,19 +65,9 @@ async function SourceProfile({ params }: { params: Promise<{ handle: string }> }
       <ProfileHeader
         banner={<Cover seed={source.handle} category={source.category} className="size-full" />}
         avatar={<SourceAvatar source={source} size={134} />}
-        actions={
-          <>
-            <span className={cn(iconButton, "border border-[#536471]")} title="More">
-              <Ellipsis className="size-5" />
-            </span>
-            <span className={cn(iconButton, "border border-[#536471]")} title="Notify me">
-              <BellPlus className="size-5" />
-            </span>
-            <FollowButton id={source.id} name={source.name} size="md" />
-          </>
-        }
+        actions={<FollowButton id={source.id} name={source.name} size="md" />}
         name={source.name}
-        verified={source.verified ? "gold" : null}
+        verified={source.verified ? "source" : null}
         handle={source.handle}
         bio={source.description}
         meta={[

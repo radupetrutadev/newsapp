@@ -8,10 +8,13 @@ import { cn } from "@/lib/utils";
 export function SearchBox({
   defaultValue = "",
   autoFocus,
+  size = "md",
   className,
 }: {
   defaultValue?: string;
   autoFocus?: boolean;
+  /** "sm" for the top bar. */
+  size?: "sm" | "md";
   className?: string;
 }) {
   const [value, setValue] = useState(defaultValue);
@@ -19,7 +22,7 @@ export function SearchBox({
 
   return (
     <Form action="/search" role="search" className={cn("group relative", className)}>
-      <Search className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted group-focus-within:text-accent" />
+      <Search className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted transition-colors group-focus-within:text-accent" />
       <input
         ref={inputRef}
         name="q"
@@ -30,7 +33,10 @@ export function SearchBox({
         autoComplete="off"
         placeholder="Search Pulse"
         aria-label="Search Pulse"
-        className="h-11 w-full rounded-full border border-transparent bg-elevated pr-11 pl-12 text-[15px] text-foreground placeholder:text-muted focus:border-accent focus:bg-black focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+        className={cn(
+          "w-full rounded-xl border border-border bg-surface pr-10 pl-11 text-foreground transition-colors placeholder:text-muted hover:border-border-strong focus:border-accent focus:bg-background focus:outline-none [&::-webkit-search-cancel-button]:hidden",
+          size === "sm" ? "h-10 text-[14px]" : "h-12 text-[15px]",
+        )}
       />
       {value ? (
         <button
@@ -40,7 +46,7 @@ export function SearchBox({
             setValue("");
             inputRef.current?.focus();
           }}
-          className="absolute top-1/2 right-3 flex size-[22px] -translate-y-1/2 items-center justify-center rounded-full bg-accent text-black"
+          className="absolute top-1/2 right-3 flex size-[22px] -translate-y-1/2 items-center justify-center rounded-full bg-accent text-on-accent"
         >
           <X className="size-3.5" strokeWidth={3} />
         </button>

@@ -16,15 +16,22 @@ export function FullCoverage({ article, stories }: { article: Article; stories: 
   });
 
   return (
-    <section id="coverage" aria-labelledby="coverage-heading" className="scroll-mt-16 border-b border-border px-4 py-4">
-      <h2 id="coverage-heading" className="flex items-center gap-2 text-xl font-extrabold">
-        <Layers className="size-5 text-accent" /> Full coverage
+    <section
+      id="coverage"
+      aria-labelledby="coverage-heading"
+      className="mx-4 mt-6 scroll-mt-24 rounded-2xl border border-border bg-surface p-5 md:mx-0 md:scroll-mt-40"
+    >
+      <h2 id="coverage-heading" className="flex items-center gap-2.5 font-display text-[22px] font-semibold tracking-tight">
+        <span className="flex size-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <Layers className="size-[18px]" />
+        </span>
+        Full coverage
       </h2>
-      <p className="mt-0.5 text-[15px] text-muted">
+      <p className="mt-2 text-[14px] text-muted">
         {label} · first reported <TimeAgo iso={stories[0].publishedAt} />
       </p>
 
-      <ol className="relative mt-4 space-y-4 before:absolute before:top-2 before:bottom-2 before:left-[5px] before:w-px before:bg-border">
+      <ol className="relative mt-5 space-y-5 before:absolute before:top-2 before:bottom-2 before:left-[5px] before:w-px before:bg-border-strong">
         {stories.map((story) => {
           const current = story.id === article.id;
           return (
@@ -32,24 +39,24 @@ export function FullCoverage({ article, stories }: { article: Article; stories: 
               <span
                 aria-hidden
                 className={cn(
-                  "absolute top-1.5 left-0 size-[11px] rounded-full border-2 border-background",
-                  current ? "bg-accent" : "bg-muted",
+                  "absolute top-1.5 left-0 size-[11px] rounded-full border-2 border-surface",
+                  current ? "bg-accent ring-4 ring-accent/20" : "bg-muted",
                 )}
               />
               <div className="flex items-center gap-1.5 text-[13px] leading-4">
                 <SourceAvatar source={story.source} size={16} />
-                <Link href={`/source/${story.source.handle}`} className="font-bold hover:underline">
+                <Link href={`/source/${story.source.handle}`} className="font-semibold hover:underline">
                   {story.source.name}
                 </Link>
                 <span className="text-muted">·</span>
                 <TimeAgo iso={story.publishedAt} className="text-muted" />
               </div>
               {current ? (
-                <p className="mt-1 text-[15px] leading-5 font-bold">
-                  {story.title} <span className="font-normal text-muted">· You&apos;re reading this</span>
+                <p className="mt-1.5 font-display text-[16px] leading-[1.3] font-semibold">
+                  {story.title} <span className="font-sans text-[13px] font-normal text-accent">· You&apos;re reading this</span>
                 </p>
               ) : (
-                <Link href={`/article/${story.slug}`} className="mt-1 block text-[15px] leading-5 font-bold hover:underline">
+                <Link href={`/article/${story.slug}`} className="mt-1.5 block font-display text-[16px] leading-[1.3] font-semibold transition-colors hover:text-accent">
                   {story.title}
                 </Link>
               )}

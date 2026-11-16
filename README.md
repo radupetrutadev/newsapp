@@ -1,6 +1,6 @@
 # Pulse — a real-time news feed
 
-A news app with an X (Twitter)-style interface, dark mode only. Built with **Next.js 16 (App Router, Cache Components)**, **TypeScript**, **Tailwind CSS v4** and **Supabase**.
+A news app with a dark, black-and-orange interface: story cards, a top bar and full coverage of every event. Built with **Next.js 16 (App Router, Cache Components)**, **TypeScript**, **Tailwind CSS v4** and **Supabase**.
 
 It runs out of the box on mock data ("demo mode"). Add Supabase keys and the same UI reads from your database, enables real accounts, and fills the feed with real stories from publishers' RSS feeds.
 
@@ -289,7 +289,7 @@ npm run test:e2e:supabase         # needs Docker; starts the local Supabase stac
 ```
 src/
   app/
-    (main)/            Three-column shell (nav · timeline · sidebar) and all app pages
+    (main)/            App shell (top bar · reading column · side rail) and all app pages
     (auth)/            Full-screen login / signup
     auth/callback/     OAuth, email confirmation and password-reset code exchange
     auth/confirm/      Email links with a token hash (cross-device reset links)
@@ -302,7 +302,7 @@ src/
     feed/              Article card, media (video, sensitive blur), actions bar, feed view, infinite-scroll list
     profile/           Profile tabs and the edit-profile form
     settings/          Settings rows, push and delete-account controls
-    layout/            Sidebars, mobile nav (with the unread badge), sticky page header, search
+    layout/            Top bar, phone dock (with the unread badge), side rail, sticky page header, search
     people/            Readers in lists
     ui/                Avatar, verified badge, generated cover art, tabs, switch, dialog, menu, …
   lib/
@@ -325,9 +325,10 @@ scripts/search-eval.mjs  Search quality on the test queries
 
 ## Design notes
 
-- Colors follow X's "Lights out" theme: true black `#000`, borders `#2f3336`, text `#e7e9ea`, accent `#1d9bf0`. Tokens live in `src/app/globals.css`.
-- Publishers get rounded-square avatars and gold checkmarks; people get round avatars and blue checks, as on X.
+- Warm black (`#0a0908`) with an orange accent (`#ff6a1a`; text on it is black). Tokens live in `src/app/globals.css`, along with `font-display` (Bricolage Grotesque, for headlines and titles) and the `kicker` label style (small mono capitals).
+- Stories are cards with the media on top; the feed, lists and sections share one column with a `px-4 md:px-0` gutter.
+- Publishers get rounded-square avatars and orange checkmarks; people get round avatars and light ones.
 - Stories without an `image_url`, or whose image fails to load, get generated mesh-gradient cover art per category (`src/components/ui/cover.tsx`). Real images from any HTTPS host are rendered with `next/image`. Videos and the sensitive-content blur are handled in `src/components/feed/article-media.tsx`.
-- Counts that are zero (likes, views, …) are hidden, as on X, so real stories never show made-up numbers.
-- Responsive: bottom tab bar on phones, icon-only nav rail on tablets, full sidebar plus trends column on desktop.
+- Counts that are zero (likes, views, …) are hidden, so real stories never show made-up numbers.
+- Responsive: a floating dock on phones, the top bar from tablets up, and a rail of trends and sources beside the column on desktop.
 - The site name lives in `src/lib/site.ts`.

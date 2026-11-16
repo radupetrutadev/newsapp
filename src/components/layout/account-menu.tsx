@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, LogOut, Settings, User } from "lucide-react";
+import { ChevronDown, LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/avatar";
@@ -8,7 +8,12 @@ import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { signOut } from "@/lib/actions/auth";
 import { turnOffPush } from "@/lib/push/browser";
 import type { Viewer } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
+const itemClass =
+  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] font-medium transition-colors hover:bg-white/[0.06]";
+
+/** The reader's avatar in the top bar, opening their account menu. */
 export function AccountMenu({ viewer }: { viewer: Viewer }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -30,35 +35,45 @@ export function AccountMenu({ viewer }: { viewer: Viewer }) {
 
   return (
     <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Account menu"
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          "flex items-center gap-1.5 rounded-full p-1 pr-2 transition-colors hover:bg-white/[0.06]",
+          open && "bg-white/[0.06]",
+        )}
+      >
+        <UserAvatar user={viewer} size={32} />
+        <ChevronDown className={cn("size-4 text-muted transition-transform", open && "rotate-180")} />
+      </button>
+
       {open ? (
         <div
           role="menu"
-          className="animate-fade-in absolute bottom-full left-0 z-50 mb-3 w-[300px] overflow-hidden rounded-2xl border border-border bg-black py-3 shadow-[0_0_15px_rgba(255,255,255,0.2),0_0_3px_1px_rgba(255,255,255,0.15)]"
+          className="animate-fade-in absolute top-full right-0 z-50 mt-2 w-[280px] overflow-hidden rounded-2xl border border-border bg-surface p-1.5 shadow-[0_24px_60px_rgb(0_0_0/0.6)]"
         >
-          <Link
-            role="menuitem"
-            href="/profile"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 text-[15px] font-bold hover:bg-white/[0.03]"
-          >
-            <User className="size-5" /> View profile
+          <div className="flex items-center gap-3 border-b border-border px-3 pt-2 pb-3.5 mb-1.5">
+            <UserAvatar user={viewer} size={40} />
+            <div className="min-w-0">
+              <p className="flex items-center gap-1 text-[15px] font-semibold">
+                <span className="truncate">{viewer.name}</span>
+                {viewer.verified ? <VerifiedBadge /> : null}
+              </p>
+              <p className="truncate text-[13px] text-muted">@{viewer.handle}</p>
+            </div>
+          </div>
+          <Link role="menuitem" href="/profile" onClick={() => setOpen(false)} className={itemClass}>
+            <User className="size-[18px] text-muted" /> View profile
           </Link>
-          <Link
-            role="menuitem"
-            href="/settings"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 text-[15px] font-bold hover:bg-white/[0.03]"
-          >
-            <Settings className="size-5" /> Settings
+          <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className={itemClass}>
+            <Settings className="size-[18px] text-muted" /> Settings
           </Link>
           {viewer.isDemo ? (
-            <Link
-              role="menuitem"
-              href="/login"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 text-[15px] font-bold hover:bg-white/[0.03]"
-            >
-              <LogOut className="size-5" /> Sign in with a real account
+            <Link role="menuitem" href="/login" onClick={() => setOpen(false)} className={itemClass}>
+              <LogOut className="size-[18px] text-muted" /> Sign in with a real account
             </Link>
           ) : (
             <form
@@ -68,36 +83,13 @@ export function AccountMenu({ viewer }: { viewer: Viewer }) {
                 await signOut();
               }}
             >
-              <button
-                role="menuitem"
-                type="submit"
-                className="flex w-full items-center gap-3 px-4 py-3 text-left text-[15px] font-bold hover:bg-white/[0.03]"
-              >
-                <LogOut className="size-5" /> Log out @{viewer.handle}
+              <button role="menuitem" type="submit" className={itemClass}>
+                <LogOut className="size-[18px] text-muted" /> Log out @{viewer.handle}
               </button>
             </form>
           )}
         </div>
       ) : null}
-
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="Account menu"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-3 rounded-full p-3 text-left transition-colors hover:bg-white/10"
-      >
-        <UserAvatar user={viewer} size={40} />
-        <span className="hidden min-w-0 flex-1 xl:block">
-          <span className="flex items-center gap-1 text-[15px] font-bold">
-            <span className="truncate">{viewer.name}</span>
-            {viewer.verified ? <VerifiedBadge /> : null}
-          </span>
-          <span className="block truncate text-[15px] text-muted">@{viewer.handle}</span>
-        </span>
-        <Ellipsis className="hidden size-[18px] xl:block" />
-      </button>
     </div>
   );
 }
