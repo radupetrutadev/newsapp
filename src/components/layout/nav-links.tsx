@@ -2,12 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 import { useUnreadCount } from "@/lib/store/notifications";
 import { cn } from "@/lib/utils";
 import { badgeLabel, isActivePath, navItems } from "./nav-items";
 
+/**
+ * The sidebar's links, with the current page's highlighted. Pages whose
+ * address is only known at request time (a story published after the build,
+ * say) are prerendered without the highlight, which streams in with the page.
+ */
 export function NavLinks() {
-  const pathname = usePathname();
+  return (
+    <Suspense fallback={<NavLinkList pathname={null} />}>
+      <CurrentNavLinkList />
+    </Suspense>
+  );
+}
+
+function CurrentNavLinkList() {
+  return <NavLinkList pathname={usePathname()} />;
+}
+
+function NavLinkList({ pathname }: { pathname: string | null }) {
   const badges: Record<string, number> = { "/notifications": useUnreadCount() };
 
   return (

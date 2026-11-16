@@ -2,12 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 import { useUnreadCount } from "@/lib/store/notifications";
 import { cn } from "@/lib/utils";
 import { badgeLabel, isActivePath, navItems } from "./nav-items";
 
+/**
+ * The bottom bar on phones, with the current page's link highlighted. Pages
+ * whose address is only known at request time (a story published after the
+ * build, say) are prerendered without the highlight, which streams in with
+ * the page.
+ */
 export function MobileNav() {
-  const pathname = usePathname();
+  return (
+    <Suspense fallback={<MobileNavBar pathname={null} />}>
+      <CurrentMobileNavBar />
+    </Suspense>
+  );
+}
+
+function CurrentMobileNavBar() {
+  return <MobileNavBar pathname={usePathname()} />;
+}
+
+function MobileNavBar({ pathname }: { pathname: string | null }) {
   const badges: Record<string, number> = { "/notifications": useUnreadCount() };
 
   return (

@@ -18,7 +18,9 @@ export const navItems: NavItem[] = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function isActivePath(pathname: string, href: string): boolean {
+/** Whether `href` is the current section. Nothing is while the pathname isn't known (null). */
+export function isActivePath(pathname: string | null, href: string): boolean {
+  if (pathname === null) return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
