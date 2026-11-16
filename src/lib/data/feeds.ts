@@ -1,8 +1,10 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { isUuid } from "@/lib/activity";
 import { categoryName } from "@/lib/categories";
+import { onePerEvent } from "@/lib/coverage";
 import { isLiveFeed, type FeedPage, type FeedSpec } from "@/lib/feeds";
-import { storyRank } from "@/lib/ranking";
+import { readingHistory, storyRank } from "@/lib/ranking";
+import { embed, embeddingConfig, normalizeQuery, toVector } from "@/lib/search/openai";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Article, CategorySlug } from "@/lib/types";
@@ -17,7 +19,8 @@ import { getMockFeed } from "./mock-feed";
  *
  * Pages that look the same for everyone are cached for about a minute.
  * "For you" and "Following" read the reader's session, so render callers
- * inside <Suspense>.
+ * inside <Suspense>. A signed-in reader's "For you" is ranked by their reading
+ * history, so it's theirs alone and isn't cached.
  */
 
 export const PAGE_SIZE = 20;
@@ -25,10 +28,12 @@ export const PAGE_SIZE = 20;
 /** A feed or cursor that can't be served, e.g. from an edited URL. /api/feed answers 400. */
 export class InvalidFeedError extends Error {}
 
-/** Demo mode: the sources and topics the reader follows, which live in their browser. */
+/** Demo mode: the sources and topics the reader follows and the stories they read, which live in their browser. */
 export interface LocalLists {
   sources: string[];
   topics: string[];
+  /** Newest first; empty when they turned personalization off. */
+  read?: string[];
 }
 
 /**
@@ -46,8 +51,10 @@ export async function getFeedPage(
 
   switch (feed.kind) {
     case "for-you": {
-      const topics = await viewerTopics();
       const offset = decodeCursor<OffsetCursor>(cursor, isOffsetCursor);
+      const supabase = await createClient();
+      const [topics, signedIn] = await Promise.all([viewerTopics(supabase), isSignedIn(supabase)]);
+      if (signedIn) return queryRanked(topics, feed.category, offset, supabase);
       return uncached ? queryRanked(topics, feed.category, offset) : rankedPage(topics, feed.category, offset);
     }
     case "following":
@@ -179,9 +186,15 @@ function toArticles(data: unknown, countedAt: string): Article[] {
   return (data as ArticleRow[]).map((row) => mapArticle(row, countedAt));
 }
 
+type SessionClient = Awaited<ReturnType<typeof createClient>>;
+
+async function isSignedIn(supabase: SessionClient): Promise<boolean> {
+  const { data } = await supabase.auth.getClaims();
+  return Boolean(data?.claims.sub);
+}
+
 /** Topics the signed-in reader follows; none when signed out (RLS returns no rows). */
-async function viewerTopics(): Promise<string[]> {
-  const supabase = await createClient();
+async function viewerTopics(supabase: SessionClient): Promise<string[]> {
   const { data, error } = await supabase.from("topic_follows").select("category");
   if (error) {
     console.error(`Supabase: failed to load followed topics: ${error.message}`);
@@ -202,19 +215,22 @@ async function rankedPage(
   return queryRanked(topics, category, cursor);
 }
 
+/** With the reader's session, ranked by their reading history (public.for_you_feed). */
 async function queryRanked(
   topics: string[],
   category: CategorySlug | null,
   cursor: OffsetCursor | null,
+  reader?: SessionClient,
 ): Promise<FeedPage> {
   const asOf = cursor?.asOf ?? new Date().toISOString();
   const offset = cursor?.offset ?? 0;
-  const { data, error } = await createPublicClient().rpc("for_you_feed", {
+  const { data, error } = await (reader ?? createPublicClient()).rpc("for_you_feed", {
     as_of: asOf,
     page_offset: offset,
     page_size: PAGE_SIZE + 1,
     topics,
     category,
+    personalize: Boolean(reader),
   });
   if (error) fail("For you", error);
   return offsetPage(toArticles(data, new Date().toISOString()), asOf, offset);
@@ -301,9 +317,33 @@ async function searchPage(query: string, cursor: OffsetCursor | null): Promise<F
     as_of: asOf,
     page_offset: offset,
     page_size: PAGE_SIZE + 1,
+    query_embedding: await queryEmbedding(normalizeQuery(query)),
   });
   if (error) fail("search results", error);
   return offsetPage(toArticles(data, new Date().toISOString()), asOf, offset);
+}
+
+/**
+ * What a search is about, for finding stories by meaning as well as by their
+ * words. Null without OPENAI_API_KEY, or when the API fails: then search uses
+ * the words alone, and tries again in a few minutes.
+ */
+async function queryEmbedding(query: string): Promise<string | null> {
+  "use cache";
+  const config = embeddingConfig();
+  if (!config) {
+    cacheLife("max");
+    return null;
+  }
+  try {
+    const [vector] = await embed([query], config);
+    cacheLife("weeks");
+    return toVector(vector);
+  } catch (error) {
+    console.error(`Search: couldn't embed the query: ${error instanceof Error ? error.message : error}`);
+    cacheLife("minutes");
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -324,11 +364,15 @@ async function demoPage(feed: FeedSpec, cursor: OffsetCursor | null, local: Loca
   let list: Article[];
   switch (feed.kind) {
     case "for-you": {
+      // Ranked, with only the best-ranked story of each event, like public.for_you_feed.
       const at = Date.parse(asOf);
-      list = inCategory(feed.category)
-        .map((article) => ({ article, rank: storyRank(article, at, local.topics) }))
-        .sort((a, b) => b.rank - a.rank)
-        .map(({ article }) => article);
+      const history = local.read?.length ? readingHistory(local.read, stories) : undefined;
+      list = onePerEvent(
+        inCategory(feed.category)
+          .map((article) => ({ article, rank: storyRank(article, at, local.topics, history) }))
+          .sort((a, b) => b.rank - a.rank)
+          .map(({ article }) => article),
+      );
       break;
     }
     case "following":

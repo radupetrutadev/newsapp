@@ -1,9 +1,10 @@
-import { Clock, Zap } from "lucide-react";
+import { Clock, Layers, Zap } from "lucide-react";
 import Link from "next/link";
 import { SourceAvatar } from "@/components/ui/avatar";
 import { TimeAgo } from "@/components/ui/time-ago";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { categoryName } from "@/lib/categories";
+import { coverageLabel } from "@/lib/coverage";
 import type { Article } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ArticleActions } from "./article-actions";
@@ -79,6 +80,15 @@ export function ArticleCard({
 
         {showMedia ? (
           <ArticleMedia article={article} className="mt-3 rounded-2xl border border-border" />
+        ) : null}
+
+        {article.coverage ? (
+          <Link
+            href={`/article/${article.slug}#coverage`}
+            className="relative mt-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent hover:underline"
+          >
+            <Layers className="size-3.5" /> Full coverage · {coverageLabel(article.coverage)}
+          </Link>
         ) : null}
 
         <ArticleActions article={article} className="relative mt-2" />

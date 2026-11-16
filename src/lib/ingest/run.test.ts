@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { runIngest } from "./run";
 import { feedConfig, fixture, NOW } from "./test-helpers";
+import type { ClusterAssignment } from "./cluster";
 import type { ArticleInsert, FeedConfig, FeedUpdate, IngestStore, TrendInput, TrendRow } from "./types";
 
 /** In-memory store with the same "skip known URLs" rule as the database. */
 function memoryStore(feeds: FeedConfig[]) {
   const articles: ArticleInsert[] = [];
   const feedUpdates = new Map<string, FeedUpdate>();
-  const calls = { expireBreaking: [] as string[], replaceTrends: [] as TrendRow[][] };
+  const embeddings = new Map<string, number[]>();
+  const calls = {
+    expireBreaking: [] as string[],
+    replaceTrends: [] as TrendRow[][],
+    saveClusters: [] as ClusterAssignment[][],
+  };
 
   const store: IngestStore = {
     async listFeeds() {
@@ -15,7 +21,7 @@ function memoryStore(feeds: FeedConfig[]) {
     },
     async insertArticles(rows) {
       const fresh = rows.filter((row) => !articles.some((stored) => stored.url === row.url));
-      articles.push(...fresh);
+      articles.push(...fresh.map((row, index) => ({ ...row, id: `article-${articles.length + index + 1}` })));
       return fresh.length;
     },
     async updateFeed(id, patch) {
@@ -35,8 +41,38 @@ function memoryStore(feeds: FeedConfig[]) {
     async replaceTrends(rows) {
       calls.replaceTrends.push(rows);
     },
+    async clusterCandidates() {
+      return articles.map((article) => ({
+        id: article.id!,
+        title: article.title,
+        summary: article.summary,
+        tags: article.tags ?? [],
+        publishedAt: article.published_at!,
+        clusterId: article.cluster_id ?? null,
+      }));
+    },
+    async saveClusters(assignments) {
+      calls.saveClusters.push(assignments);
+      return assignments.reduce((total, { articleIds }) => total + articleIds.length, 0);
+    },
+    async articlesToEmbed(limit) {
+      return articles
+        .filter((article) => !embeddings.has(article.id!))
+        .slice(0, limit)
+        .map((article) => ({
+          id: article.id!,
+          title: article.title,
+          summary: article.summary,
+          tags: article.tags ?? [],
+          category: article.category,
+        }));
+    },
+    async saveEmbeddings(items) {
+      for (const { id, embedding } of items) embeddings.set(id, embedding);
+      return items.length;
+    },
   };
-  return { store, articles, feedUpdates, calls };
+  return { store, articles, feedUpdates, calls, embeddings };
 }
 
 type Responder = (init: RequestInit | undefined) => Response;
@@ -132,5 +168,83 @@ describe("runIngest", () => {
     expect(feedUpdates.get("world")).toMatchObject({ last_error: null, last_success_at: NOW.toISOString() });
     // Nothing recent: the previous trends are kept.
     expect(calls.replaceTrends).toEqual([]);
+  });
+
+  it("clusters stories different feeds wrote about the same event", async () => {
+    const item = (title: string, link: string) =>
+      `<rss version="2.0"><channel><title>Feed</title><item><title>${title}</title><link>${link}</link>` +
+      `<pubDate>Sun, 19 Oct 2026 10:00:00 GMT</pubDate></item></channel></rss>`;
+    const feeds = [
+      feedConfig({ id: "one", url: "https://one.example.com/feed.xml", sourceId: "one" }),
+      feedConfig({ id: "two", url: "https://two.example.com/feed.xml", sourceId: "two" }),
+    ];
+    const { store, calls } = memoryStore(feeds);
+    const { fetchImpl } = fakeFetch({
+      [feeds[0].url]: () =>
+        xml(item("Magnitude 7.1 earthquake strikes off Japan's Miyagi coast", "https://one.example.com/quake")),
+      [feeds[1].url]: () =>
+        xml(item("Japan lifts tsunami advisory after the 7.1 quake off Miyagi", "https://two.example.com/quake")),
+    });
+
+    const report = await runIngest(store, { fetch: fetchImpl, now: NOW });
+
+    expect(report.clustered).toBe(2);
+    expect(calls.saveClusters).toEqual([[{ clusterId: null, articleIds: ["article-1", "article-2"] }]]);
+  });
+
+  it("finishes the run when clustering fails", async () => {
+    const feeds = [feedConfig({ id: "world", url: "https://feeds.example.com/world.xml" })];
+    const { store, articles } = memoryStore(feeds);
+    store.clusterCandidates = async () => {
+      throw new Error("relation \"story_clusters\" does not exist");
+    };
+    const { fetchImpl } = fakeFetch({
+      "https://feeds.example.com/world.xml": () => xml(fixture("bbc-style.xml")),
+    });
+
+    const report = await runIngest(store, { fetch: fetchImpl, now: NOW });
+
+    expect(articles).toHaveLength(2);
+    expect(report).toMatchObject({ added: 2, clustered: 0, clusterError: 'relation "story_clusters" does not exist' });
+    expect(report.trends).toBeGreaterThan(0);
+  });
+
+  it("embeds stories that have no embedding yet", async () => {
+    const feeds = [feedConfig({ id: "world", url: "https://feeds.example.com/world.xml" })];
+    const { store, embeddings } = memoryStore(feeds);
+    const { fetchImpl } = fakeFetch({
+      "https://feeds.example.com/world.xml": () => xml(fixture("bbc-style.xml")),
+    });
+    const texts: string[][] = [];
+    const embed = async (batch: string[]) => {
+      texts.push(batch);
+      return batch.map((_, index) => [index, 1]);
+    };
+
+    const first = await runIngest(store, { fetch: fetchImpl, now: NOW, embed });
+    const second = await runIngest(store, { fetch: fetchImpl, now: NOW, embed });
+
+    expect(first.embedded).toBe(2);
+    expect(embeddings.size).toBe(2);
+    // Each text has the headline and topic; nothing is embedded twice.
+    expect(texts).toHaveLength(1);
+    expect(texts[0][0]).toMatch(/\nTopic: world$/);
+    expect(second.embedded).toBe(0);
+  });
+
+  it("finishes the run when embedding fails", async () => {
+    const feeds = [feedConfig({ id: "world", url: "https://feeds.example.com/world.xml" })];
+    const { store, articles } = memoryStore(feeds);
+    const { fetchImpl } = fakeFetch({
+      "https://feeds.example.com/world.xml": () => xml(fixture("bbc-style.xml")),
+    });
+    const embed = async () => {
+      throw new Error("OpenAI embeddings: HTTP 429 (Rate limit reached)");
+    };
+
+    const report = await runIngest(store, { fetch: fetchImpl, now: NOW, embed });
+
+    expect(articles).toHaveLength(2);
+    expect(report).toMatchObject({ added: 2, embedded: 0, embedError: "OpenAI embeddings: HTTP 429 (Rate limit reached)" });
   });
 });

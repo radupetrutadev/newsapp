@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { ArticleTimestamp } from "@/components/article/article-timestamp";
 import { CommentThread } from "@/components/article/comment-thread";
 import { EngagementStats } from "@/components/article/engagement-stats";
+import { FullCoverage } from "@/components/article/full-coverage";
 import { RecordView } from "@/components/article/record-view";
 import { ArticleActions } from "@/components/feed/article-actions";
 import { ArticleList } from "@/components/feed/article-list";
@@ -19,7 +20,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { FeedSkeleton } from "@/components/ui/skeleton";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { categoryName } from "@/lib/categories";
-import { getArticle, getArticleSlugs, getComments, getRelatedArticles } from "@/lib/data";
+import { getArticle, getArticleSlugs, getComments, getCoverage, getRelatedArticles } from "@/lib/data";
 import { getViewerReports } from "@/lib/data/activity";
 import { getViewer } from "@/lib/data/viewer";
 import type { Article } from "@/lib/types";
@@ -65,7 +66,10 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
   const article = await getArticle(slug);
   if (!article) notFound();
 
-  const related = await getRelatedArticles(article, 4);
+  const [related, coverage] = await Promise.all([
+    getRelatedArticles(article, 4),
+    article.coverage ? getCoverage(article.coverage.clusterId) : [],
+  ]);
   const { source, stats } = article;
 
   return (
@@ -179,6 +183,8 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
       <div className="mx-4 border-y border-border py-2">
         <ArticleActions article={article} size="detail" />
       </div>
+
+      <FullCoverage article={article} stories={coverage} />
 
       <Suspense fallback={<FeedSkeleton count={2} />}>
         <Replies article={article} />

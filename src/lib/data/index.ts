@@ -1,5 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
+import { isUuid } from "@/lib/activity";
 import { categoryName } from "@/lib/categories";
+import { onePerEvent } from "@/lib/coverage";
 import { mockComments, mockTrends, mockUsers, type MockComment } from "@/lib/mock/community";
 import { mockSources } from "@/lib/mock/sources";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -137,41 +139,83 @@ export async function getArticleSlugs(): Promise<string[]> {
   return slugs.length > 0 ? slugs : ["welcome"];
 }
 
-/** The newest other stories in the same topic, topped up with the newest from any topic. */
+/**
+ * The newest other stories in the same topic, topped up with the newest from
+ * any topic: one per event, and none about this story's event, which "Full
+ * coverage" lists.
+ */
 export async function getRelatedArticles(article: Article, limit = 3): Promise<Article[]> {
-  return getRelated(article.id, article.category, limit);
+  return getRelated(article.id, article.category, article.coverage?.clusterId ?? null, limit);
 }
 
-async function getRelated(id: string, category: CategorySlug, limit: number): Promise<Article[]> {
+async function getRelated(
+  id: string,
+  category: CategorySlug,
+  clusterId: string | null,
+  limit: number,
+): Promise<Article[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("articles");
+
+  const others = (articles: Article[]) =>
+    onePerEvent(
+      articles.filter((other) => other.id !== id && (!clusterId || other.coverage?.clusterId !== clusterId)),
+    );
+
+  if (!isSupabaseConfigured()) {
+    const feed = await getMockFeed();
+    return others([
+      ...feed.filter((other) => other.category === category),
+      ...feed.filter((other) => other.category !== category),
+    ]).slice(0, limit);
+  }
+
+  const countedAt = new Date().toISOString();
+  // Twice as many as needed, as some may cover the same event.
+  const newest = () => {
+    const query = createPublicClient().from("articles").select(ARTICLE_SELECT).neq("id", id);
+    return (clusterId ? query.or(`cluster_id.is.null,cluster_id.neq.${clusterId}`) : query)
+      .order("published_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(limit * 2);
+  };
+  const [sameTopic, otherTopics] = await Promise.all([
+    newest().eq("category", category),
+    newest().neq("category", category),
+  ]);
+  const error = sameTopic.error ?? otherTopics.error;
+  if (error) fail("related stories", error);
+  return others(
+    [...(sameTopic.data as ArticleRow[]), ...(otherTopics.data as ArticleRow[])].map((row) =>
+      mapArticle(row, countedAt),
+    ),
+  ).slice(0, limit);
+}
+
+/** Every story about an event, oldest first: the "Full coverage" timeline. */
+export async function getCoverage(clusterId: string): Promise<Article[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("articles");
 
   if (!isSupabaseConfigured()) {
-    const feed = (await getMockFeed()).filter((other) => other.id !== id);
-    return feed
-      .filter((other) => other.category === category)
-      .concat(feed.filter((other) => other.category !== category))
-      .slice(0, limit);
+    return (await getMockFeed())
+      .filter((article) => article.coverage?.clusterId === clusterId)
+      .sort((a, b) => a.publishedAt.localeCompare(b.publishedAt));
   }
+  if (!isUuid(clusterId)) return [];
 
   const countedAt = new Date().toISOString();
-  const newest = () =>
-    createPublicClient()
-      .from("articles")
-      .select(ARTICLE_SELECT)
-      .neq("id", id)
-      .order("published_at", { ascending: false })
-      .order("id", { ascending: false });
-  const [sameTopic, otherTopics] = await Promise.all([
-    newest().eq("category", category).limit(limit),
-    newest().neq("category", category).limit(limit),
-  ]);
-  const error = sameTopic.error ?? otherTopics.error;
-  if (error) fail("related stories", error);
-  return [...(sameTopic.data as ArticleRow[]), ...(otherTopics.data as ArticleRow[])]
-    .slice(0, limit)
-    .map((row) => mapArticle(row, countedAt));
+  const { data, error } = await createPublicClient()
+    .from("articles")
+    .select(ARTICLE_SELECT)
+    .eq("cluster_id", clusterId)
+    .order("published_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(50);
+  if (error) fail("full coverage", error);
+  return (data as ArticleRow[]).map((row) => mapArticle(row, countedAt));
 }
 
 export interface TopicStats {

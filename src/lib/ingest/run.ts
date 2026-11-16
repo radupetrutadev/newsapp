@@ -1,3 +1,5 @@
+import { storyText } from "@/lib/search/openai";
+import { assignClusters } from "./cluster";
 import { normalizeItem } from "./normalize";
 import { parseFeed } from "./parse";
 import { computeTrends } from "./trends";
@@ -9,17 +11,25 @@ const FETCH_TIMEOUT_MS = 15_000;
 /** Breaking flags expire so the Live banner never shows an old story. */
 const BREAKING_HOURS = 6;
 const TRENDS_WINDOW_HOURS = 24;
+/** Feeds only offer stories up to three days old (see normalize.ts). */
+const CLUSTER_WINDOW_HOURS = 72;
+/** New stories first; older ones without an embedding catch up over the next runs. */
+const EMBED_BATCH = 200;
 
 export interface IngestOptions {
   fetch?: typeof fetch;
   now?: Date;
   concurrency?: number;
   userAgent?: string;
+  /** Turns texts into embeddings (src/lib/search/openai.ts). Without it, stories get none. */
+  embed?: (texts: string[]) => Promise<number[][]>;
 }
 
 /**
- * Polls every active feed, stores new stories, then refreshes trends.
- * One failing feed never stops the run; its error is saved on the feed row.
+ * Polls every active feed, stores new stories, clusters stories about the
+ * same event, embeds stories that have no embedding, then refreshes trends.
+ * One failing feed never stops the run; its error is saved on the feed row,
+ * and a failed clustering or embedding step is retried by the next run.
  */
 export async function runIngest(store: IngestStore, options: IngestOptions = {}): Promise<IngestReport> {
   const fetchImpl = options.fetch ?? fetch;
@@ -33,6 +43,31 @@ export async function runIngest(store: IngestStore, options: IngestOptions = {})
 
   await store.expireBreaking(hoursBefore(now, BREAKING_HOURS));
 
+  // New stories can join an event already covered, or pair up with one that had no match yet.
+  let clustered = 0;
+  let clusterError: string | undefined;
+  try {
+    const assignments = assignClusters(await store.clusterCandidates(hoursBefore(now, CLUSTER_WINDOW_HOURS)));
+    if (assignments.length > 0) clustered = await store.saveClusters(assignments);
+  } catch (cause) {
+    // The stories are stored either way; the next run tries again.
+    clusterError = describeError(cause);
+  }
+
+  let embedded = 0;
+  let embedError: string | undefined;
+  if (options.embed) {
+    try {
+      const stories = await store.articlesToEmbed(EMBED_BATCH);
+      if (stories.length > 0) {
+        const vectors = await options.embed(stories.map(storyText));
+        embedded = await store.saveEmbeddings(stories.map((story, index) => ({ id: story.id, embedding: vectors[index] })));
+      }
+    } catch (cause) {
+      embedError = describeError(cause);
+    }
+  }
+
   const recent = await store.recentArticles(hoursBefore(now, TRENDS_WINDOW_HOURS));
   const trends = computeTrends(recent);
   // Keep the previous list rather than blanking it when nothing is recent.
@@ -43,6 +78,10 @@ export async function runIngest(store: IngestStore, options: IngestOptions = {})
     finishedAt: new Date().toISOString(),
     feeds: results,
     added: results.reduce((total, result) => total + result.added, 0),
+    clustered,
+    ...(clusterError ? { clusterError } : {}),
+    embedded,
+    ...(embedError ? { embedError } : {}),
     trends: trends.length,
   };
 }

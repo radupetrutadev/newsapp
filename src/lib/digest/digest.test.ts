@@ -11,6 +11,7 @@ const stories: Article[] = mockArticles.slice(0, 3).map(({ sourceId, minutesAgo,
   ...article,
   videoUrl: videoUrl ?? null,
   isSensitive: isSensitive ?? false,
+  coverage: null,
   source: sources.get(sourceId)!,
   publishedAt: new Date(Date.parse("2026-10-25T12:00:00Z") - minutesAgo * 60_000).toISOString(),
 }));

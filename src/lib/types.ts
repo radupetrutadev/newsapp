@@ -38,6 +38,14 @@ export interface ArticleStats {
   views: number;
 }
 
+/** Other publishers' stories about the same event ("Full coverage"). */
+export interface Coverage {
+  clusterId: string;
+  /** Stories in the cluster, this one included. */
+  stories: number;
+  sources: number;
+}
+
 export interface Article {
   id: string;
   slug: string;
@@ -57,6 +65,8 @@ export interface Article {
   isSensitive: boolean;
   readTimeMinutes: number;
   stats: ArticleStats;
+  /** Null when no other story covers the same event. */
+  coverage: Coverage | null;
   /**
    * When the counts were read from the database. Cached pages can lag behind
    * the reader's own likes and follows; the client corrects for that. Absent

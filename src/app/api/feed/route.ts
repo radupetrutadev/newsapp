@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getFeedPage, InvalidFeedError, type LocalLists } from "@/lib/data/feeds";
 import { parseFeedParams } from "@/lib/feeds";
+import { HISTORY_SIZE } from "@/lib/ranking";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 /**
@@ -29,9 +30,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** Demo mode keeps the reader's follows in their browser, so the client sends them. */
+/** Demo mode keeps the reader's follows and reading history in their browser, so the client sends them. */
 function localLists(params: URLSearchParams): LocalLists | undefined {
   if (isSupabaseConfigured()) return undefined;
-  const list = (name: string) => (params.get(name) ?? "").split(",").filter(Boolean).slice(0, 100);
-  return { sources: list("sources"), topics: list("topics") };
+  const list = (name: string, limit = 100) => (params.get(name) ?? "").split(",").filter(Boolean).slice(0, limit);
+  return { sources: list("sources"), topics: list("topics"), read: list("read", HISTORY_SIZE) };
 }

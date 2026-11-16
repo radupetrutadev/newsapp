@@ -6,7 +6,7 @@ import { sendPushSoon } from "@/lib/push/send";
 import { settingsColumns, type Settings } from "@/lib/settings";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Database } from "@/lib/supabase/database.types";
-import { createClient, createPublicClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 /** `at` is server time (ms) after the write, used to correct cached counts. */
 export type ActivityResult = { ok: true; at: number } | { ok: false; error: string };
@@ -131,9 +131,21 @@ export async function saveSettings(changes: Partial<Settings>): Promise<Activity
   return done(error, "settings");
 }
 
-/** Counts a story view. Signed-out readers count too. */
+/**
+ * Counts a story view. Signed-out readers count too; a signed-in reader's
+ * view also goes into their reading history (public.record_article_view).
+ */
 export async function recordView(articleId: string): Promise<void> {
   if (!isSupabaseConfigured() || !isUuid(articleId)) return;
-  const { error } = await createPublicClient().rpc("record_article_view", { article_id: articleId });
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_article_view", { article_id: articleId });
   if (error) console.error(`Supabase: failed to record a view: ${error.message}`);
+}
+
+/** Forgets the stories the reader opened, so "For you" stops ranking by them. */
+export async function clearReadingHistory(): Promise<ActivityResult> {
+  const account = await signedInClient();
+  if (!account) return SIGNED_OUT;
+  const { error } = await account.supabase.from("reading_history").delete().eq("user_id", account.userId);
+  return done(error, "reading history");
 }

@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# A new push replaces the run for the same branch or pull request.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  checks:
+    name: Lint, types and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  e2e-demo:
+    name: End-to-end (demo mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Builds the app without Supabase, then tests it on a desktop and a phone screen.
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-demo
+          path: |
+            playwright-report/demo
+            test-results/demo
+          retention-days: 7
+
+  e2e-supabase:
+    name: End-to-end (Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Starts a local Supabase stack in Docker (every migration, then seed.sql),
+      # builds the app against it, and runs the tests.
+      - run: npm run test:e2e:supabase
+      - name: Supabase logs
+        if: failure()
+        run: |
+          docker ps -a
+          for service in auth rest storage db; do
+            echo "::group::$service"
+            docker logs "supabase_${service}_newsapp" --tail 200 2>&1 || true
+            echo "::endgroup::"
+          done
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-supabase
+          path: |
+            playwright-report/supabase
+            test-results/supabase
+          retention-days: 7
+
+  search-eval:
+    name: Search quality
+    # Run by hand (Actions → CI → Run workflow), after adding an OPENAI_API_KEY
+    # repository secret. The report shows on the run's summary page.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Starts a local Supabase stack with the demo stories, embeds them and
+      # compares full-text search with full-text plus search by meaning.
+      - run: npm run search:eval

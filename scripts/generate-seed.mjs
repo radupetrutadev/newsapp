@@ -7,6 +7,7 @@
 
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { assignClusters } from "../src/lib/ingest/cluster.ts";
 import { mockArticles } from "../src/lib/mock/articles.ts";
 import { mockTrends } from "../src/lib/mock/community.ts";
 import { mockSources } from "../src/lib/mock/sources.ts";
@@ -53,6 +54,22 @@ const articles = mockArticles.map((article) =>
   ]),
 );
 
+// Stories about the same event, found the way news ingestion finds them.
+const now = Date.now();
+const clusters = assignClusters(
+  mockArticles.map((article) => ({
+    id: article.slug,
+    title: article.title,
+    summary: article.summary,
+    tags: article.tags,
+    publishedAt: new Date(now - article.minutesAgo * 60_000).toISOString(),
+    clusterId: null,
+  })),
+).map(
+  ({ articleIds }) =>
+    `  jsonb_build_object('article_ids', (select jsonb_agg(id) from public.articles where slug in (${articleIds.map(text).join(", ")})))`,
+);
+
 const trends = mockTrends.map((trend, index) =>
   row([text(trend.context), text(trend.topic), trend.postsCount, text(trend.category), index]),
 );
@@ -69,8 +86,15 @@ on conflict (slug) do nothing;
 
 insert into public.trends (context, topic, posts_count, category, position) values
 ${trends.join(",\n")};
+
+-- Stories about the same event ("Full coverage"). Running this again regroups them.
+select public.assign_story_clusters(jsonb_build_array(
+${clusters.join(",\n")}
+));
 `;
 
 const out = fileURLToPath(new URL("../supabase/seed.sql", import.meta.url));
 writeFileSync(out, sql);
-console.log(`Wrote ${mockSources.length} sources, ${mockArticles.length} articles and ${mockTrends.length} trends to supabase/seed.sql`);
+console.log(
+  `Wrote ${mockSources.length} sources, ${mockArticles.length} articles, ${mockTrends.length} trends and ${clusters.length} clusters to supabase/seed.sql`,
+);

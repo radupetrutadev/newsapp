@@ -4,6 +4,7 @@ import { rejectUnlessCron } from "@/lib/cron";
 import { runIngest } from "@/lib/ingest/run";
 import { createSupabaseIngestStore } from "@/lib/ingest/supabase-store";
 import { deliverPush, type PushReport } from "@/lib/push/send";
+import { embed, embeddingConfig } from "@/lib/search/openai";
 import { site } from "@/lib/site";
 import { isAdminConfigured } from "@/lib/supabase/admin";
 
@@ -33,12 +34,14 @@ async function ingest(request: NextRequest) {
     );
   }
 
+  const embeddings = embeddingConfig();
   const report = await runIngest(createSupabaseIngestStore(), {
     userAgent: `PulseBot/1.0 (+${site.url})`,
+    embed: embeddings ? (texts) => embed(texts, embeddings) : undefined,
   });
 
   // Serve the current pages while fresh ones render in the background.
-  if (report.added > 0) revalidateTag("articles", "max");
+  if (report.added > 0 || report.clustered > 0 || report.embedded > 0) revalidateTag("articles", "max");
   revalidateTag("trends", "max");
 
   // Breaking stories just stored notify their followers; this also sends

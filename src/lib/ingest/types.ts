@@ -1,5 +1,6 @@
 import type { Database } from "@/lib/supabase/database.types";
 import type { CategorySlug } from "@/lib/types";
+import type { ClusterAssignment, ClusterInput } from "./cluster";
 
 /** A feed to poll, as stored in the `feeds` table. */
 export interface FeedConfig {
@@ -29,6 +30,15 @@ export interface TrendRow {
   category: CategorySlug;
 }
 
+/** A story to embed (see src/lib/search/openai.ts). */
+export interface EmbeddingInput {
+  id: string;
+  title: string;
+  summary: string;
+  tags: string[];
+  category: string;
+}
+
 /** Persistence used by the ingestion run; Supabase in production, fakes in tests. */
 export interface IngestStore {
   listFeeds(): Promise<FeedConfig[]>;
@@ -39,6 +49,13 @@ export interface IngestStore {
   expireBreaking(before: string): Promise<void>;
   recentArticles(since: string): Promise<TrendInput[]>;
   replaceTrends(rows: TrendRow[]): Promise<void>;
+  /** Stories published since `since` (ISO date), with their cluster if they have one. */
+  clusterCandidates(since: string): Promise<ClusterInput[]>;
+  /** Saves new clusters and stories joining clusters. Returns how many stories moved. */
+  saveClusters(assignments: ClusterAssignment[]): Promise<number>;
+  /** Up to `limit` stories without an embedding, newest first. */
+  articlesToEmbed(limit: number): Promise<EmbeddingInput[]>;
+  saveEmbeddings(items: { id: string; embedding: number[] }[]): Promise<number>;
 }
 
 export interface FeedResult {
@@ -56,5 +73,11 @@ export interface IngestReport {
   finishedAt: string;
   feeds: FeedResult[];
   added: number;
+  /** Stories put in a cluster with others about the same event. */
+  clustered: number;
+  clusterError?: string;
+  /** Stories given an embedding, for search by meaning and "For you". */
+  embedded: number;
+  embedError?: string;
   trends: number;
 }
