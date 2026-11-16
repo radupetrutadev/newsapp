@@ -46,7 +46,7 @@ async function Profile({ articles, sources }: { articles: Article[]; sources: So
           title="Sign in to see your profile"
           description="Your likes, reposts and the sources you follow live here."
           action={
-            <Link href="/login" className={buttonClasses({ variant: "accent", size: "lg" })}>
+            <Link href="/login" className={buttonClasses({ variant: "primary", size: "lg" })}>
               Sign in
             </Link>
           }
@@ -67,7 +67,7 @@ async function Profile({ articles, sources }: { articles: Article[]; sources: So
           </Link>
         }
         name={viewer.name}
-        verified={viewer.verified ? "blue" : null}
+        verified={viewer.verified ? "person" : null}
         handle={viewer.handle}
         bio={viewer.bio || null}
         meta={[{ icon: CalendarDays, content: `Joined ${formatMonthYear(viewer.joinedAt)}` }]}
@@ -77,7 +77,7 @@ async function Profile({ articles, sources }: { articles: Article[]; sources: So
         ]}
       />
       {viewer.isDemo ? (
-        <div className="mx-4 mb-4 flex gap-3 rounded-2xl border border-accent/30 bg-accent/[0.06] p-4 text-[15px]">
+        <div className="mx-4 mt-4 flex gap-3 rounded-2xl border border-accent/30 bg-accent/[0.06] p-4 text-[14px] leading-5 md:mx-0">
           <Info className="mt-0.5 size-5 shrink-0 text-accent" />
           <p className="text-foreground/90">
             You&apos;re browsing as a demo reader. Likes, bookmarks and follows are saved in this

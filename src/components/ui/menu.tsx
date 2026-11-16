@@ -32,14 +32,14 @@ export function MoreMenu({ label, children }: { label: string; children: (close:
         aria-expanded={open}
         aria-label={label}
         onClick={() => setOpen((value) => !value)}
-        className="-my-1.5 -mr-2 flex size-[34px] items-center justify-center rounded-full text-muted transition-colors hover:bg-accent/10 hover:text-accent"
+        className="-my-1.5 -mr-2 flex size-[34px] items-center justify-center rounded-full text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground"
       >
         <Ellipsis className="size-[18px]" />
       </button>
       {open ? (
         <div
           role="menu"
-          className="animate-fade-in absolute top-0 right-0 z-30 w-max min-w-[200px] overflow-hidden rounded-xl bg-background py-1 shadow-[0_0_15px_rgba(255,255,255,0.2),0_0_3px_1px_rgba(255,255,255,0.15)]"
+          className="animate-fade-in absolute top-full right-0 z-30 mt-1 w-max min-w-[200px] overflow-hidden rounded-xl border border-border bg-elevated p-1 shadow-[0_20px_50px_rgb(0_0_0/0.6)]"
         >
           {children(() => setOpen(false))}
         </div>
@@ -65,8 +65,8 @@ export function MenuItem({
       role="menuitem"
       onClick={onSelect}
       className={cn(
-        "flex w-full items-center gap-3 px-4 py-3 text-left text-[15px] font-bold hover:bg-white/[0.03]",
-        danger && "text-live",
+        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] font-medium hover:bg-white/[0.06]",
+        danger && "text-danger",
       )}
     >
       <Icon className="size-[18px]" /> {children}

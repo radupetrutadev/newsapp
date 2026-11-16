@@ -19,8 +19,8 @@ export function CategoryChips({
   ];
 
   return (
-    <div className="relative border-b border-border">
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3">
+    <div className="relative">
+      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3 md:px-0">
         {items.map((item) => {
           const active = item.slug === value;
           return (
@@ -30,10 +30,10 @@ export function CategoryChips({
               aria-pressed={active}
               onClick={() => onChange(item.slug)}
               className={cn(
-                "h-8 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors",
+                "h-8 shrink-0 rounded-full border px-3.5 text-[13px] font-medium transition-colors",
                 active
-                  ? "bg-foreground text-black"
-                  : "border border-border text-foreground hover:bg-white/10",
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-surface text-foreground/80 hover:border-border-strong hover:text-foreground",
               )}
             >
               {item.name}
@@ -41,7 +41,7 @@ export function CategoryChips({
           );
         })}
       </div>
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-black to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent md:w-8" />
     </div>
   );
 }

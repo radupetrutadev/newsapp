@@ -16,7 +16,6 @@ export default function NotificationsPage() {
     <>
       <PageHeader
         title="Notifications"
-        className="border-b-0"
         actions={
           <Link href="/settings#notifications" aria-label="Notification settings" className={iconButton}>
             <Settings className="size-5" />
@@ -39,7 +38,7 @@ async function Notifications() {
         title="Sign in to see your notifications"
         description="Replies, likes, new followers and breaking news from the sources and topics you follow show up here."
         action={
-          <Link href="/login" className={buttonClasses({ variant: "accent", size: "lg" })}>
+          <Link href="/login" className={buttonClasses({ variant: "primary", size: "lg" })}>
             Sign in
           </Link>
         }

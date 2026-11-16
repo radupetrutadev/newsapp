@@ -22,9 +22,12 @@ export function DeleteAccount({ handle }: { handle: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-4 px-4 py-3 text-left text-[15px] text-live transition-colors hover:bg-live/10"
+        className="flex w-full items-center gap-4 px-4 py-3.5 text-left text-[15px] font-medium text-danger transition-colors hover:bg-live/10"
       >
-        <Trash2 className="size-5" /> Delete account
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-live/10">
+          <Trash2 className="size-[18px]" />
+        </span>
+        Delete account
       </button>
       <Dialog
         open={open}
@@ -55,11 +58,11 @@ export function DeleteAccount({ handle }: { handle: string }) {
               autoCapitalize="none"
               spellCheck={false}
               aria-label={`Type ${handle} to confirm`}
-              className="mt-2 h-11 w-full rounded-md border border-[#333639] bg-transparent px-3 text-[17px] outline-none focus:border-live focus:ring-1 focus:ring-live"
+              className="mt-2 h-12 w-full rounded-xl border border-border-strong bg-background px-3.5 text-[16px] outline-none focus:border-live focus:ring-2 focus:ring-live/30"
             />
           </label>
           {state.error ? (
-            <p role="alert" className="rounded-md border border-live/40 bg-live/10 px-3 py-2 text-[14px] text-[#ff6b75]">
+            <p role="alert" className="rounded-xl border border-live/40 bg-live/10 px-3 py-2 text-[14px] text-danger">
               {state.error}
             </p>
           ) : null}

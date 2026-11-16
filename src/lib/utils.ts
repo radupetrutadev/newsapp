@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** 1234 → "1.2K", 2_400_000 → "2.4M" (X-style compact counts). */
+/** 1234 → "1.2K", 2_400_000 → "2.4M" (compact counts). */
 export function formatCount(value: number): string {
   if (value < 1_000) return String(value);
   if (value < 1_000_000) return `${compact(value / 1_000)}K`;
@@ -59,7 +59,7 @@ const monthYear = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-/** Relative time like X: "45s", "12m", "3h", "2d", then "Oct 3". */
+/** Short relative time: "45s", "12m", "3h", "2d", then "Oct 3". */
 export function formatRelativeTime(iso: string, now: number): string {
   const seconds = Math.max(0, Math.floor((now - Date.parse(iso)) / 1000));
   if (seconds < 60) return `${Math.max(seconds, 1)}s`;

@@ -10,20 +10,20 @@ export const metadata: Metadata = { title: "Reset your password" };
 export default function ForgotPasswordPage({ searchParams }: PageProps<"/forgot-password">) {
   return (
     <>
-      <h1 className="text-[31px] leading-9 font-extrabold tracking-tight">Find your account</h1>
-      <p className="mt-3 max-w-[320px] text-[15px] text-muted">
+      <h1 className="font-display text-[34px] leading-[1.1] font-bold tracking-[-0.03em]">Find your account</h1>
+      <p className="mt-2 text-[15px] text-muted">
         Enter the email you signed up with and we&apos;ll send you a link to choose a new password.
       </p>
 
-      <div className="mt-6 w-full max-w-[320px] space-y-3">
+      <div className="mt-8 w-full space-y-3">
         <Suspense>
           <AuthNotice searchParams={searchParams} />
         </Suspense>
         <ForgotPasswordForm />
         <DemoNotice />
-        <p className="pt-6 text-[15px] text-muted">
+        <p className="pt-6 text-[14px] text-muted">
           Remembered it?{" "}
-          <Link href="/login" className="text-accent hover:underline">
+          <Link href="/login" className="font-semibold text-accent hover:underline">
             Sign in
           </Link>
         </p>

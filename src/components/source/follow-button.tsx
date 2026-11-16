@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Check, Plus } from "lucide-react";
 import { useToggle } from "@/lib/store/engagement";
 import { toast } from "@/lib/store/toast";
 import { cn } from "@/lib/utils";
 
 /**
- * Follow / Following pill for a source (`list` "following", the default) or a
- * person ("people"). Hovering "Following" turns it into a red "Unfollow"
- * button, just like X.
+ * Follow / Following button for a source (`list` "following", the default)
+ * or a person ("people").
  */
 export function FollowButton({
   id,
@@ -24,7 +23,6 @@ export function FollowButton({
   className?: string;
 }) {
   const [following, toggle] = useToggle(list, id);
-  const [hovered, setHovered] = useState(false);
 
   return (
     <button
@@ -32,23 +30,22 @@ export function FollowButton({
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        setHovered(false);
         if (!toggle()) return;
         toast(following ? `You unfollowed ${name}` : `You're now following ${name}`);
       }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       aria-pressed={following}
+      title={following ? `Unfollow ${name}` : undefined}
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center rounded-full font-bold transition-colors",
-        size === "sm" ? "h-8 min-w-[78px] px-4 text-sm" : "h-9 min-w-[104px] px-4 text-[15px]",
+        "relative inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl font-semibold transition-colors",
+        size === "sm" ? "h-9 min-w-[96px] px-3.5 text-[13px]" : "h-10 min-w-[116px] px-4 text-[14px]",
         following
-          ? "border border-[#536471] text-foreground hover:border-[#67070f] hover:bg-live/10 hover:text-live"
-          : "bg-foreground text-black hover:bg-foreground/90",
+          ? "border border-border-strong bg-transparent text-foreground hover:border-live/50 hover:text-danger"
+          : "bg-accent text-on-accent hover:bg-accent-hover",
         className,
       )}
     >
-      {following ? (hovered ? "Unfollow" : "Following") : "Follow"}
+      {following ? <Check className="size-4" strokeWidth={2.5} /> : <Plus className="size-4" strokeWidth={2.5} />}
+      {following ? "Following" : "Follow"}
     </button>
   );
 }

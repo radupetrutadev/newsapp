@@ -22,7 +22,7 @@ function emit() {
   listeners.forEach((listener) => listener());
 }
 
-/** Show an X-style toast at the bottom of the screen, optionally with a link. */
+/** Show a toast at the bottom of the screen, optionally with a link. */
 export function toast(message: string, action?: ToastAction) {
   const id = nextId++;
   toasts = [...toasts, { id, message, action }];

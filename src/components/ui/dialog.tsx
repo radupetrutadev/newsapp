@@ -44,13 +44,13 @@ export function Dialog({
         if (event.target === ref.current) onClose();
       }}
       className={cn(
-        "m-auto w-[calc(100%-32px)] max-w-[400px] rounded-2xl bg-background p-0 text-foreground backdrop:bg-[#5b7083]/40",
+        "m-auto w-[calc(100%-32px)] max-w-[420px] rounded-3xl border border-border bg-surface p-0 text-foreground shadow-[0_30px_80px_rgb(0_0_0/0.7)] backdrop:bg-black/70 backdrop:backdrop-blur-sm",
         className,
       )}
     >
       {open ? (
         <div className="p-6">
-          <h2 id={titleId} className="text-xl leading-6 font-extrabold">
+          <h2 id={titleId} className="font-display text-[22px] leading-7 font-semibold tracking-tight">
             {title}
           </h2>
           {description ? (

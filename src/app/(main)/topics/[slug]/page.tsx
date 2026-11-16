@@ -37,7 +37,9 @@ function TopicSkeleton() {
   return (
     <>
       <PageHeader title={<Skeleton className="h-5 w-28" />} back="/topics" />
-      <Skeleton className="h-48 w-full rounded-none sm:h-56" />
+      <div className="px-4 md:px-0">
+        <Skeleton className="h-52 w-full rounded-3xl sm:h-60" />
+      </div>
       <FeedSkeleton count={2} />
     </>
   );
@@ -57,29 +59,30 @@ async function Topic({ params }: { params: Promise<{ slug: string }> }) {
     <>
       <PageHeader title={category.name} subtitle={`${storyCount(stories)} today`} back="/topics" />
 
-      <section className="relative">
-        <Cover seed={`topic-${category.slug}`} category={category.slug} className="h-48 w-full sm:h-56" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 px-4 pb-4">
+      <section className="relative mx-4 mt-2 overflow-hidden rounded-3xl border border-border md:mx-0">
+        <Cover seed={`topic-${category.slug}`} category={category.slug} className="h-52 w-full sm:h-60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
           <div className="min-w-0">
-            <span className="mb-2 flex size-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20 backdrop-blur">
-              <Icon className="size-6 text-white" />
+            <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-background/50 ring-1 ring-white/15 backdrop-blur">
+              <Icon className="size-5" />
             </span>
-            <h2 className="text-[31px] leading-9 font-extrabold tracking-tight">{category.name}</h2>
-            <p className="line-clamp-2 text-[15px] text-foreground/80">{category.description}</p>
+            <h2 className="font-display text-[34px] leading-9 font-bold tracking-[-0.03em]">{category.name}</h2>
+            <p className="mt-1 line-clamp-2 text-[15px] text-foreground/80">{category.description}</p>
           </div>
           <TopicFollowButton slug={category.slug} />
         </div>
       </section>
 
-      <div className="flex gap-5 border-b border-border px-4 py-3 text-[15px] text-muted">
-        <span>
-          <span className="font-bold text-foreground">{formatCount(stories)}</span>{" "}
+      <div className="flex gap-2 px-4 pt-3 pb-4 md:px-0">
+        <span className="rounded-xl border border-border bg-surface px-3.5 py-2 text-[13px] text-muted">
+          <span className="mr-1 font-display text-[17px] font-semibold text-foreground">{formatCount(stories)}</span>
           {stories === 1 ? "story" : "stories"} today
         </span>
         {views > 0 ? (
-          <span>
-            <span className="font-bold text-foreground">{formatCount(views)}</span> reads
+          <span className="rounded-xl border border-border bg-surface px-3.5 py-2 text-[13px] text-muted">
+            <span className="mr-1 font-display text-[17px] font-semibold text-foreground">{formatCount(views)}</span>
+            reads
           </span>
         ) : null}
       </div>

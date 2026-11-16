@@ -8,7 +8,7 @@ import { ArticleCard } from "./article-card";
 export function ArticleList({ articles }: { articles: Article[] }) {
   const { showImages } = useSettings();
   return (
-    <div>
+    <div className="space-y-3 px-4 md:px-0">
       {articles.map((article) => (
         <ArticleCard key={article.id} article={article} showMedia={showImages} />
       ))}

@@ -1,55 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useUnreadCount } from "@/lib/store/notifications";
 import { cn } from "@/lib/utils";
+import { WithPathname } from "./current-path";
 import { badgeLabel, isActivePath, navItems } from "./nav-items";
 
+/** The top bar's section links, with the current one marked. */
 export function NavLinks() {
-  const pathname = usePathname();
+  return <WithPathname component={NavLinkList} />;
+}
+
+/** The top bar's icon buttons (notifications, settings). */
+export function NavIconLinks() {
+  return <WithPathname component={NavIconList} />;
+}
+
+function NavLinkList({ pathname }: { pathname: string | null }) {
+  return (
+    <nav aria-label="Primary" className="flex items-center gap-1">
+      {navItems
+        .filter((item) => item.bar === "link")
+        .map(({ href, label }) => {
+          const active = isActivePath(pathname, href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex h-9 items-center gap-2 rounded-full px-3.5 text-[14px] font-medium transition-colors",
+                active
+                  ? "bg-white/[0.07] text-foreground"
+                  : "text-muted hover:bg-white/[0.04] hover:text-foreground",
+              )}
+            >
+              {active ? <span aria-hidden className="size-1.5 rounded-full bg-accent" /> : null}
+              {label}
+            </Link>
+          );
+        })}
+    </nav>
+  );
+}
+
+function NavIconList({ pathname }: { pathname: string | null }) {
   const badges: Record<string, number> = { "/notifications": useUnreadCount() };
 
   return (
-    <nav aria-label="Primary" className="flex flex-col items-center gap-0.5 xl:items-stretch">
-      {navItems.map(({ href, label, icon: Icon }) => {
-        const active = isActivePath(pathname, href);
-        const badge = badges[href];
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-label={badge ? `${label}, ${badge} unread` : label}
-            aria-current={active ? "page" : undefined}
-            className="group flex py-[3px] outline-none"
-          >
-            <span className="flex items-center gap-5 rounded-full p-3 transition-colors group-hover:bg-white/10 group-focus-visible:ring-2 group-focus-visible:ring-accent xl:pr-6">
-              <span className="relative">
-                <Icon
-                  className={cn("size-[26px]", active && "fill-foreground/15")}
-                  strokeWidth={active ? 2.6 : 1.9}
-                />
-                {badge ? (
-                  <span
-                    aria-hidden
-                    className="absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-black bg-accent px-1 text-[11px] font-bold text-white"
-                  >
-                    {badgeLabel(badge)}
-                  </span>
-                ) : null}
-              </span>
-              <span
-                className={cn(
-                  "hidden text-xl xl:inline",
-                  active ? "font-bold" : "font-normal text-foreground/95",
-                )}
-              >
-                {label}
-              </span>
-            </span>
-          </Link>
-        );
-      })}
+    <nav aria-label="Account" className="flex items-center gap-1">
+      {navItems
+        .filter((item) => item.bar === "icon")
+        .map(({ href, label, icon: Icon }) => {
+          const active = isActivePath(pathname, href);
+          const badge = badges[href];
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-label={badge ? `${label}, ${badge} unread` : label}
+              aria-current={active ? "page" : undefined}
+              title={label}
+              className={cn(
+                "relative flex size-10 items-center justify-center rounded-full transition-colors",
+                active
+                  ? "bg-accent/12 text-accent"
+                  : "text-muted hover:bg-white/[0.06] hover:text-foreground",
+              )}
+            >
+              <Icon className="size-5" strokeWidth={active ? 2.3 : 1.9} />
+              {badge ? (
+                <span
+                  aria-hidden
+                  className="absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-bold text-on-accent ring-2 ring-background"
+                >
+                  {badgeLabel(badge)}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
     </nav>
   );
 }

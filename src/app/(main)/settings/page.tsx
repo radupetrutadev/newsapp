@@ -32,9 +32,9 @@ async function AccountSection() {
   if (!viewer) {
     return (
       <SettingsSection title="Your account">
-        <div className="flex items-center justify-between gap-4 px-4 py-3">
+        <div className="flex items-center justify-between gap-4 px-4 py-3.5">
           <p className="text-[15px] text-muted">Sign in to manage your account.</p>
-          <Link href="/login" className={buttonClasses({ variant: "accent", size: "sm" })}>
+          <Link href="/login" className={buttonClasses({ variant: "primary", size: "sm" })}>
             Sign in
           </Link>
         </div>
@@ -44,10 +44,10 @@ async function AccountSection() {
 
   return (
     <SettingsSection title="Your account" description="See information about your account.">
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 py-4">
         <UserAvatar user={viewer} size={48} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-bold">{viewer.name}</p>
+          <p className="truncate font-display text-[17px] font-semibold">{viewer.name}</p>
           <p className="truncate text-[15px] text-muted">@{viewer.handle}</p>
         </div>
         <Link href="/profile/edit" className={buttonClasses({ variant: "outline", size: "sm" })}>
@@ -78,9 +78,12 @@ async function AccountSection() {
           <form action={signOut}>
             <button
               type="submit"
-              className="flex w-full items-center gap-4 px-4 py-3 text-left text-[15px] transition-colors hover:bg-white/[0.03]"
+              className="flex w-full items-center gap-4 px-4 py-3.5 text-left text-[15px] font-medium transition-colors hover:bg-white/[0.04]"
             >
-              <LogOut className="size-5" /> Log out
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted">
+                <LogOut className="size-[18px]" />
+              </span>
+              Log out
             </button>
           </form>
           <DeleteAccount handle={viewer.handle} />
@@ -92,7 +95,7 @@ async function AccountSection() {
 
 function AccountSkeleton() {
   return (
-    <div className="space-y-3 border-b border-border px-4 py-5">
+    <div className="space-y-3 px-4 pt-6 md:px-0">
       <Skeleton className="h-5 w-32" />
       <div className="flex items-center gap-3">
         <Skeleton className="size-12 rounded-full" />

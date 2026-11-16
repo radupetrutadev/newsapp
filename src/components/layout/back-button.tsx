@@ -14,9 +14,9 @@ export function BackButton({ fallbackHref = "/" }: { fallbackHref?: string }) {
         if (window.history.length > 1) router.back();
         else router.push(fallbackHref);
       }}
-      className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+      className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface transition-colors hover:border-border-strong hover:bg-surface-hover"
     >
-      <ArrowLeft className="size-5" />
+      <ArrowLeft className="size-[18px]" />
     </button>
   );
 }

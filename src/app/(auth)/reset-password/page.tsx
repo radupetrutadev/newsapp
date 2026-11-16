@@ -13,9 +13,9 @@ export const metadata: Metadata = { title: "Choose a new password" };
 export default function ResetPasswordPage() {
   return (
     <>
-      <h1 className="text-[31px] leading-9 font-extrabold tracking-tight">Choose a new password</h1>
-      <div className="mt-6 w-full max-w-[320px] space-y-3">
-        <Suspense fallback={<Skeleton className="h-[170px] w-full rounded-md" />}>
+      <h1 className="font-display text-[34px] leading-[1.1] font-bold tracking-[-0.03em]">Choose a new password</h1>
+      <div className="mt-8 w-full space-y-3">
+        <Suspense fallback={<Skeleton className="h-[190px] w-full rounded-xl" />}>
           <ResetPassword />
         </Suspense>
       </div>
@@ -31,7 +31,7 @@ async function ResetPassword() {
         <p className="text-[15px] text-muted">
           Your reset link has expired or was already used. Request a new one and open the newest email.
         </p>
-        <Link href="/forgot-password" className={buttonClasses({ variant: "primary", className: "h-10 w-full" })}>
+        <Link href="/forgot-password" className={buttonClasses({ size: "lg", className: "w-full" })}>
           Send a new link
         </Link>
       </>

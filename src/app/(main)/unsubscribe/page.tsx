@@ -70,7 +70,7 @@ async function Unsubscribe({ searchParams }: { searchParams: Promise<Record<stri
         <form action={confirmUnsubscribe}>
           <input type="hidden" name="u" value={link.u} />
           <input type="hidden" name="t" value={link.t} />
-          <Button type="submit" variant="accent" size="lg">
+          <Button type="submit" variant="primary" size="lg">
             Unsubscribe
           </Button>
         </form>

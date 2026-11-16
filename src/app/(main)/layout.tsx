@@ -1,27 +1,28 @@
 import { Suspense } from "react";
 import { ActivitySync } from "@/components/layout/activity-sync";
-import { LeftSidebar } from "@/components/layout/left-sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { RightSidebar } from "@/components/layout/right-sidebar";
+import { TopBar } from "@/components/layout/top-bar";
 
 /**
- * X-style three-column shell: navigation rail, a 600px timeline column,
- * and a sidebar with search, trends and suggestions.
+ * The app shell: a top bar on tablets and up (a floating dock on phones),
+ * the page in a reading column, and a rail of trends and sources beside it
+ * on wide screens.
  */
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[1265px] justify-center">
-      <header className="hidden shrink-0 sm:flex sm:w-[72px] sm:justify-end md:w-[88px] xl:w-[275px]">
-        <LeftSidebar />
-      </header>
+    <div className="min-h-dvh">
+      <TopBar />
 
-      <main className="min-h-dvh w-full max-w-[600px] min-w-0 border-border pb-[53px] sm:border-x sm:pb-0">
-        {children}
-      </main>
+      <div className="mx-auto flex w-full max-w-[1180px] justify-center gap-8 md:px-6">
+        <main className="min-h-dvh w-full max-w-[720px] min-w-0 flex-1 pb-[calc(96px+env(safe-area-inset-bottom))] md:pb-16">
+          {children}
+        </main>
 
-      <aside className="hidden w-[290px] shrink-0 pl-6 lg:block xl:w-[350px] xl:pl-8">
-        <RightSidebar />
-      </aside>
+        <aside className="hidden w-[320px] shrink-0 lg:block xl:w-[340px]">
+          <RightSidebar />
+        </aside>
+      </div>
 
       <MobileNav />
 

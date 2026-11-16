@@ -75,62 +75,68 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
   return (
     <>
       <RecordView articleId={article.id} />
-      <article className="px-4 pt-3">
-        <div className="flex items-center gap-3">
-          <Link href={`/source/${source.handle}`}>
-            <SourceAvatar source={source} size={40} />
-          </Link>
-          <Link href={`/source/${source.handle}`} className="min-w-0 flex-1 leading-5">
-            <span className="flex items-center gap-1 text-[15px] font-bold">
-              <span className="truncate hover:underline">{source.name}</span>
-              {source.verified ? <VerifiedBadge variant="gold" /> : null}
-            </span>
-            <span className="block truncate text-[15px] text-muted">@{source.handle}</span>
-          </Link>
-          <FollowButton id={source.id} name={source.name} />
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px]">
+      <article className="px-4 pt-4 md:px-0">
+        <div className="flex flex-wrap items-center gap-2">
           {article.isBreaking ? (
-            <span className="inline-flex items-center gap-1 rounded bg-live px-1.5 py-px text-[11px] font-extrabold tracking-wider text-white uppercase">
+            <span className="kicker inline-flex items-center gap-1 rounded-md bg-live px-2 py-1 text-white">
               <Zap className="size-3 fill-current" /> Breaking
             </span>
           ) : null}
           <Link
             href={`/topics/${article.category}`}
-            className="rounded-full bg-accent/10 px-2.5 py-0.5 font-semibold text-accent hover:bg-accent/20"
+            className="kicker rounded-full border border-accent/30 px-2.5 py-1 text-accent transition-colors hover:bg-accent/10"
           >
             {categoryName(article.category)}
           </Link>
-          <span className="text-muted">{article.readTimeMinutes} min read</span>
+          <span className="kicker text-muted">{article.readTimeMinutes} min read</span>
         </div>
 
-        <h1 className="mt-3 text-[26px] leading-[1.15] font-extrabold tracking-tight text-pretty sm:text-[31px]">
+        <h1 className="mt-4 font-display text-[30px] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-[40px]">
           {article.title}
         </h1>
-        <p className="mt-3 text-[17px] leading-6 text-foreground/80">{article.summary}</p>
+        <p className="mt-4 text-[18px] leading-7 text-foreground/70 sm:text-[19px]">{article.summary}</p>
+
+        <div className="mt-6 flex items-center gap-3 border-y border-border py-4">
+          <Link href={`/source/${source.handle}`} className="shrink-0">
+            <SourceAvatar source={source} size={44} />
+          </Link>
+          <div className="min-w-0 flex-1 leading-5">
+            <Link
+              href={`/source/${source.handle}`}
+              className="flex items-center gap-1 text-[15px] font-semibold hover:underline"
+            >
+              <span className="truncate">{source.name}</span>
+              {source.verified ? <VerifiedBadge variant="source" /> : null}
+            </Link>
+            <p className="truncate text-[13px] text-muted">
+              <ArticleTimestamp iso={article.publishedAt} />
+              {stats.views > 0 ? <> · {formatCount(stats.views)} reads</> : null}
+            </p>
+          </div>
+          <FollowButton id={source.id} name={source.name} />
+        </div>
 
         <ArticleMedia
           article={article}
           controls
           priority
-          sizes="(min-width: 640px) 568px, 100vw"
-          className="mt-4 rounded-2xl border border-border"
+          sizes="(min-width: 768px) 720px, 100vw"
+          className="mt-6 rounded-2xl border border-border"
         />
 
-        <div className="mt-5 space-y-4 text-[17px] leading-[1.65] text-foreground/95">
+        <div className="mt-6 space-y-5 text-[17px] leading-[1.75] text-foreground/90 [&>p:first-child]:text-[19px] [&>p:first-child]:text-foreground">
           {article.body.map((paragraph, index) => (
             <p key={index}>{paragraph}</p>
           ))}
         </div>
 
         {article.tags.length > 0 ? (
-          <div className="mt-5 flex flex-wrap gap-x-3 gap-y-1">
+          <div className="mt-6 flex flex-wrap gap-2">
             {article.tags.map((tag) => (
               <Link
                 key={tag}
                 href={`/search?q=${encodeURIComponent(tag)}`}
-                className="text-[15px] text-accent hover:underline"
+                className="rounded-full border border-border bg-surface px-3 py-1 text-[13px] text-foreground/80 transition-colors hover:border-accent/40 hover:text-accent"
               >
                 #{tag}
               </Link>
@@ -144,44 +150,35 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group mt-5 flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 transition-colors hover:bg-surface-hover"
+              className="group mt-6 flex items-center gap-4 rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-accent/40 hover:bg-surface-hover"
             >
-              <SourceAvatar source={source} size={40} />
+              <SourceAvatar source={source} size={44} />
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-bold group-hover:underline">
+                <span className="block text-[15px] font-semibold group-hover:text-accent">
                   Read the full story at {source.name}
                 </span>
                 <span className="block truncate text-[13px] text-muted">{hostname(article.url)}</span>
               </span>
-              <ExternalLink className="size-5 shrink-0 text-accent" />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent">
+                <ExternalLink className="size-[18px]" />
+              </span>
             </a>
           ) : (
             <a
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={buttonClasses({ variant: "outline", className: "mt-5" })}
+              className={buttonClasses({ variant: "outline", className: "mt-6" })}
             >
               Read the full story at {hostname(article.url)} <ExternalLink className="size-4" />
             </a>
           )
         ) : null}
-
-        <p className="mt-5 pb-4 text-[15px] text-muted">
-          <ArticleTimestamp iso={article.publishedAt} />
-          {stats.views > 0 ? (
-            <>
-              {" "}
-              · <span className="font-bold text-foreground">{formatCount(stats.views)}</span> Views
-            </>
-          ) : null}
-        </p>
       </article>
 
-      <EngagementStats article={article} />
-
-      <div className="mx-4 border-y border-border py-2">
-        <ArticleActions article={article} size="detail" />
+      <div className="mx-4 mt-8 rounded-2xl border border-border bg-surface md:mx-0">
+        <EngagementStats article={article} />
+        <ArticleActions article={article} size="detail" className="px-2 py-1.5 sm:px-3" />
       </div>
 
       <FullCoverage article={article} stories={coverage} />
@@ -191,8 +188,8 @@ async function Story({ params }: { params: Promise<{ slug: string }> }) {
       </Suspense>
 
       {related.length > 0 ? (
-        <section aria-labelledby="related">
-          <h2 id="related" className="border-b border-border px-4 pt-6 pb-3 text-xl font-extrabold">
+        <section aria-labelledby="related" className="mt-10">
+          <h2 id="related" className="px-4 pb-4 font-display text-[24px] font-semibold tracking-tight md:px-0">
             More stories
           </h2>
           <ArticleList articles={related} />

@@ -23,7 +23,7 @@ export function Cover({
   showIcon?: boolean;
 }) {
   const meta = getCategory(category);
-  const [a, b, base] = meta?.palette ?? ["#1d9bf0", "#7856ff", "#0f172a"];
+  const [a, b, base] = meta?.palette ?? ["#ff6a1a", "#ffb02e", "#1f0d05"];
   const Icon = meta?.icon;
   const h = hashString(seed);
   const p = (shift: number, min: number, span: number) => min + ((h >> shift) % span);
@@ -32,7 +32,7 @@ export function Cover({
     `radial-gradient(at ${p(0, 5, 40)}% ${p(3, 5, 45)}%, ${a} 0px, transparent 55%)`,
     `radial-gradient(at ${p(6, 55, 40)}% ${p(9, 40, 55)}%, ${b} 0px, transparent 50%)`,
     `radial-gradient(at ${p(12, 20, 60)}% ${p(15, 70, 30)}%, ${a}99 0px, transparent 45%)`,
-    `linear-gradient(${p(18, 100, 140)}deg, ${base}, #000)`,
+    `linear-gradient(${p(18, 100, 140)}deg, ${base}, #0a0908)`,
   ].join(", ");
 
   return (

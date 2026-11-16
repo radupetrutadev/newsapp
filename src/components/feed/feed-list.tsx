@@ -80,7 +80,16 @@ export function FeedList({ feed: initialFeed, initial, empty, end }: FeedListPro
           }}
         />
       ) : null}
-      <PagedListFooter list={list} noun="stories" placeholder={<ArticleSkeleton />} end={end} />
+      <PagedListFooter
+        list={list}
+        noun="stories"
+        placeholder={
+          <div className="px-4 pt-3 md:px-0">
+            <ArticleSkeleton />
+          </div>
+        }
+        end={end}
+      />
     </div>
   );
 }
@@ -132,11 +141,11 @@ function useNewStoryCount(feed: FeedSpec, since: string | null): number {
 /** Floats at the bottom of the screen while the feed is in view. */
 function NewStoriesButton({ count, onClick }: { count: number; onClick: () => void }) {
   return (
-    <div className="pointer-events-none sticky bottom-[calc(69px+env(safe-area-inset-bottom))] z-20 flex h-0 items-start justify-center sm:bottom-6">
+    <div className="pointer-events-none sticky bottom-[calc(96px+env(safe-area-inset-bottom))] z-20 flex h-0 items-start justify-center md:bottom-6">
       <button
         type="button"
         onClick={onClick}
-        className="animate-fade-in pointer-events-auto flex -translate-y-full items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[15px] font-bold text-white shadow-[0_0_12px_rgba(0,0,0,0.6)] transition-colors hover:bg-accent/90"
+        className="animate-fade-in pointer-events-auto flex -translate-y-full items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[14px] font-semibold text-on-accent shadow-[0_10px_30px_-6px_rgb(255_106_26/0.6)] transition-colors hover:bg-accent-hover"
       >
         <ArrowUp className="size-4" strokeWidth={2.5} />
         {count === 1 ? "1 new story" : `${formatCount(count)} new stories`}

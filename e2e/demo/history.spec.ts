@@ -27,7 +27,9 @@ test("For you learns from the stories opened in this browser, unless that's off"
   };
 
   await page.getByRole("main").getByRole("link", { name: read, exact: true }).click();
-  await expect(page.getByRole("heading", { name: read })).toBeVisible();
+  // The feed card has the same headline, so wait for the story page itself.
+  await expect(page).toHaveURL(/\/article\//);
+  await expect(page.getByRole("heading", { level: 1, name: read })).toBeVisible();
   expect(await readBelowNext()).toBe(true);
 
   await open(page, "/settings");

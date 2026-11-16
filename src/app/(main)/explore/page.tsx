@@ -37,8 +37,8 @@ export default async function ExplorePage() {
 
   return (
     <>
-      <PageHeader>
-        <div className="flex items-center gap-2 px-4 py-1.5">
+      <PageHeader className="md:hidden">
+        <div className="flex items-center gap-2 px-4 py-2.5">
           <SearchBox className="flex-1" />
           <Link href="/settings" aria-label="Settings" className={iconButton}>
             <Settings className="size-5" />
@@ -46,43 +46,51 @@ export default async function ExplorePage() {
         </div>
       </PageHeader>
 
+      <div className="hidden pt-8 pb-5 md:block">
+        <p className="kicker text-accent">Discover</p>
+        <h1 className="mt-2 font-display text-[40px] leading-[1.05] font-bold tracking-[-0.035em]">Explore</h1>
+      </div>
+
       {top ? (
-        <Link href={`/article/${top.slug}`} className="group relative block">
-          <ArticleMedia article={top} priority sizes="600px" className="aspect-[16/10] sm:aspect-video" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-4">
-            <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground/90">
-              <LiveDot /> {categoryName(top.category)} · {heroLabel}
-            </p>
-            <h2 className="mt-1 text-2xl leading-7 font-extrabold tracking-tight text-pretty group-hover:underline sm:text-[28px] sm:leading-8">
-              {top.title}
-            </h2>
-            <p className="mt-2 flex items-center gap-2 text-[13px] text-foreground/80">
-              <SourceAvatar source={top.source} size={20} /> {top.source.name} ·{" "}
-              <TimeAgo iso={top.publishedAt} />
-              {top.stats.views > 0 ? ` · ${formatCount(top.stats.views)} reads` : null}
-            </p>
-          </div>
-        </Link>
+        <div className="px-4 pt-2 md:px-0 md:pt-0">
+          <Link
+            href={`/article/${top.slug}`}
+            className="group relative block overflow-hidden rounded-3xl border border-border"
+          >
+            <ArticleMedia article={top} priority sizes="(min-width: 768px) 720px, 100vw" className="aspect-[4/3] sm:aspect-[16/9]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
+              <p className="kicker flex items-center gap-2 text-foreground/90">
+                <LiveDot /> {categoryName(top.category)} · {heroLabel}
+              </p>
+              <h2 className="mt-2 font-display text-[26px] leading-[1.1] font-bold tracking-[-0.025em] text-balance group-hover:text-accent sm:text-[34px]">
+                {top.title}
+              </h2>
+              <p className="mt-3 flex items-center gap-2 text-[13px] text-foreground/75">
+                <SourceAvatar source={top.source} size={20} /> {top.source.name} ·{" "}
+                <TimeAgo iso={top.publishedAt} />
+                {top.stats.views > 0 ? ` · ${formatCount(top.stats.views)} reads` : null}
+              </p>
+            </div>
+          </Link>
+        </div>
       ) : null}
 
-      <section aria-labelledby="top-stories" className="border-b border-border py-3">
-        <h2 id="top-stories" className="px-4 pb-3 text-xl font-extrabold">
-          Top stories
-        </h2>
-        <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1">
+      <section aria-labelledby="top-stories" className="pt-8">
+        <SectionHeading id="top-stories">Top stories</SectionHeading>
+        <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 md:scroll-px-0 md:px-0">
           {carousel.map((article) => (
             <Link
               key={article.id}
               href={`/article/${article.slug}`}
-              className="group w-[220px] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-surface transition-colors hover:bg-surface-hover"
+              className="group w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-surface transition-colors hover:border-border-strong hover:bg-surface-hover"
             >
-              <ArticleMedia article={article} sizes="220px" className="aspect-[16/10]" />
-              <div className="p-3">
-                <p className="text-[13px] text-muted">
+              <ArticleMedia article={article} sizes="240px" className="aspect-[16/10]" />
+              <div className="p-3.5">
+                <p className="kicker truncate text-muted">
                   {article.source.name} · <TimeAgo iso={article.publishedAt} />
                 </p>
-                <p className="mt-1 line-clamp-3 text-[15px] leading-5 font-bold group-hover:underline">
+                <p className="mt-1.5 line-clamp-3 font-display text-[16px] leading-[1.25] font-semibold group-hover:text-accent">
                   {article.title}
                 </p>
               </div>
@@ -91,25 +99,24 @@ export default async function ExplorePage() {
         </div>
       </section>
 
-      <section aria-labelledby="trending" className="border-b border-border">
-        <h2 id="trending" className="px-4 pt-3 pb-1 text-xl font-extrabold">
-          Trending now
-        </h2>
-        <ol>
+      <section aria-labelledby="trending" className="pt-8">
+        <SectionHeading id="trending">Trending now</SectionHeading>
+        <ol className="mx-4 grid gap-x-2 rounded-2xl border border-border bg-surface p-2 sm:grid-cols-2 md:mx-0">
           {trends.map((trend, index) => (
             <li key={trend.id}>
               <Link
                 href={`/search?q=${encodeURIComponent(trend.topic.replace(/^#/, ""))}`}
-                className="flex gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03]"
+                className="group flex gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-white/[0.04]"
               >
-                <span className="w-5 pt-px text-[13px] font-medium text-muted tabular-nums">
-                  {index + 1}
+                <span className="font-display text-[22px] leading-6 font-bold text-accent tabular-nums">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
-                <span>
-                  <span className="block text-[13px] text-muted">{trend.context}</span>
-                  <span className="block text-[15px] font-bold">{trend.topic}</span>
-                  <span className="block text-[13px] text-muted">
-                    {storyCount(trend.postsCount)}
+                <span className="min-w-0">
+                  <span className="block truncate text-[15px] leading-6 font-semibold group-hover:text-accent">
+                    {trend.topic}
+                  </span>
+                  <span className="block text-[12px] text-muted">
+                    {trend.context} · {storyCount(trend.postsCount)}
                   </span>
                 </span>
               </Link>
@@ -118,49 +125,67 @@ export default async function ExplorePage() {
         </ol>
       </section>
 
-      <section aria-labelledby="browse" className="border-b border-border p-4">
-        <div className="flex items-baseline justify-between pb-3">
-          <h2 id="browse" className="text-xl font-extrabold">
-            Browse topics
-          </h2>
-          <Link href="/topics" className="text-[15px] text-accent hover:underline">
-            See all
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <section aria-labelledby="browse" className="pt-8">
+        <SectionHeading id="browse" more={{ href: "/topics", label: "See all" }}>
+          Browse topics
+        </SectionHeading>
+        <div className="grid grid-cols-2 gap-3 px-4 sm:grid-cols-3 md:px-0">
           {categories.map((category) => {
             const Icon = category.icon;
             return (
               <Link
                 key={category.slug}
                 href={`/topics/${category.slug}`}
-                className="group relative h-24 overflow-hidden rounded-2xl ring-1 ring-white/10 transition-transform hover:scale-[1.02]"
+                className="group relative h-28 overflow-hidden rounded-2xl border border-border transition-transform hover:-translate-y-0.5"
               >
                 <Cover seed={category.slug} category={category.slug} showIcon={false} className="absolute inset-0" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <Icon className="absolute top-3 right-3 size-5 text-white/90" />
-                <span className="absolute bottom-3 left-3 text-[15px] font-bold">{category.name}</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/20 to-transparent" />
+                <span className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-lg bg-background/40 backdrop-blur">
+                  <Icon className="size-4 text-foreground" />
+                </span>
+                <span className="absolute bottom-3 left-3.5 font-display text-[17px] font-semibold">{category.name}</span>
               </Link>
             );
           })}
         </div>
       </section>
 
-      <section id="sources" aria-labelledby="sources-heading" className="scroll-mt-16 border-b border-border">
-        <h2 id="sources-heading" className="px-4 pt-3 pb-1 text-xl font-extrabold">
-          Sources to follow
-        </h2>
-        {sources.map((source) => (
-          <SourceRow key={source.id} source={source} showBio />
-        ))}
+      <section id="sources" aria-labelledby="sources-heading" className="scroll-mt-20 pt-8 md:scroll-mt-36">
+        <SectionHeading id="sources-heading">Sources to follow</SectionHeading>
+        <div className="mx-4 rounded-2xl border border-border bg-surface p-1.5 md:mx-0">
+          {sources.map((source) => (
+            <SourceRow key={source.id} source={source} showBio />
+          ))}
+        </div>
       </section>
 
-      <section aria-labelledby="latest">
-        <h2 id="latest" className="border-b border-border px-4 pt-6 pb-3 text-xl font-extrabold">
-          Latest
-        </h2>
+      <section aria-labelledby="latest" className="pt-8">
+        <SectionHeading id="latest">Latest</SectionHeading>
         <ArticleList articles={latest.slice(0, 5)} />
       </section>
     </>
+  );
+}
+
+function SectionHeading({
+  id,
+  more,
+  children,
+}: {
+  id: string;
+  more?: { href: string; label: string };
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-baseline justify-between px-4 pb-3 md:px-0">
+      <h2 id={id} className="font-display text-[24px] font-semibold tracking-tight">
+        {children}
+      </h2>
+      {more ? (
+        <Link href={more.href} className="text-[14px] font-medium text-muted transition-colors hover:text-accent">
+          {more.label} →
+        </Link>
+      ) : null}
+    </div>
   );
 }

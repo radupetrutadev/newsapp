@@ -69,6 +69,7 @@ export function ProfileForm({ viewer }: { viewer: Viewer }) {
 
   return (
     <form
+      className="mx-4 mt-2 overflow-hidden rounded-3xl border border-border bg-surface md:mx-0"
       action={(formData) => {
         if (photo.kind === "new") {
           const extension = photo.blob.type === "image/webp" ? "webp" : "jpg";
@@ -78,11 +79,11 @@ export function ProfileForm({ viewer }: { viewer: Viewer }) {
         dispatch(formData);
       }}
     >
-      <div className="aspect-[3/1] w-full overflow-hidden bg-surface">
+      <div className="aspect-[3/1] w-full overflow-hidden bg-elevated">
         <Cover seed={viewer.handle} category="tech" className="size-full" />
       </div>
-      <div className="flex items-end justify-between gap-3 px-4">
-        <div className="relative -mt-[12%] rounded-full border-4 border-background bg-background">
+      <div className="flex items-end justify-between gap-3 px-5">
+        <div className="relative -mt-[9%] rounded-full border-4 border-surface bg-surface">
           {photo.kind === "new" ? (
             // A blob: preview can't go through next/image.
             // eslint-disable-next-line @next/next/no-img-element
@@ -108,7 +109,7 @@ export function ProfileForm({ viewer }: { viewer: Viewer }) {
               setPhoto({ kind: "removed" });
               setPhotoError(null);
             }}
-            className="mb-2 flex items-center gap-1 rounded-full px-3 py-1.5 text-[15px] text-muted transition-colors hover:bg-white/10 hover:text-foreground"
+            className="mb-2 flex items-center gap-1 rounded-xl px-3 py-1.5 text-[14px] font-medium text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground"
           >
             <X className="size-4" /> Remove photo
           </button>
@@ -135,7 +136,7 @@ export function ProfileForm({ viewer }: { viewer: Viewer }) {
         }}
       />
 
-      <div className="space-y-6 px-4 pt-6 pb-4">
+      <div className="space-y-5 px-5 pt-6 pb-5">
         <Field label="Name" count={name.length} max={NAME_MAX_LENGTH}>
           <input
             name="name"
@@ -144,7 +145,7 @@ export function ProfileForm({ viewer }: { viewer: Viewer }) {
             maxLength={NAME_MAX_LENGTH}
             autoComplete="name"
             required
-            className="w-full bg-transparent px-2 pb-2 text-[17px] outline-none"
+            className="w-full bg-transparent px-3.5 pb-2.5 text-[16px] outline-none"
           />
         </Field>
         <Field label="Bio" count={bio.length} max={BIO_MAX_LENGTH}>
@@ -154,12 +155,12 @@ export function ProfileForm({ viewer }: { viewer: Viewer }) {
             onChange={(event) => setBio(event.target.value)}
             maxLength={BIO_MAX_LENGTH}
             rows={3}
-            className="w-full resize-none bg-transparent px-2 pb-2 text-[17px] leading-6 outline-none"
+            className="w-full resize-none bg-transparent px-3.5 pb-2.5 text-[16px] leading-6 outline-none"
           />
         </Field>
 
         {error ? (
-          <p role="alert" className="rounded-md border border-live/40 bg-live/10 px-3 py-2 text-[14px] text-[#ff6b75]">
+          <p role="alert" className="rounded-xl border border-live/40 bg-live/10 px-3.5 py-2.5 text-[14px] text-danger">
             {error}
           </p>
         ) : null}
@@ -179,8 +180,8 @@ export function ProfileForm({ viewer }: { viewer: Viewer }) {
 
 function Field({ label, count, max, children }: { label: string; count: number; max: number; children: ReactNode }) {
   return (
-    <label className="group block rounded-md border border-[#333639] focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-      <span className="flex justify-between px-2 pt-2 text-[13px] text-muted group-focus-within:text-accent">
+    <label className="group block rounded-xl border border-border-strong bg-background transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25">
+      <span className="flex justify-between px-3.5 pt-2.5 text-[12px] text-muted group-focus-within:text-accent">
         {label}
         <span className="tabular-nums opacity-0 group-focus-within:opacity-100">
           {count} / {max}

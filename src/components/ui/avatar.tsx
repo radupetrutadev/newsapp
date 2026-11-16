@@ -3,20 +3,20 @@ import type { Source, UserProfile } from "@/lib/types";
 import { cn, hashString, initials } from "@/lib/utils";
 
 const userPalettes = [
-  ["#1d9bf0", "#7856ff"],
-  ["#f91880", "#ff7a00"],
-  ["#00ba7c", "#1d9bf0"],
-  ["#7856ff", "#f91880"],
-  ["#ffad1f", "#f4212e"],
-  ["#06b6d4", "#22c55e"],
-  ["#a855f7", "#ec4899"],
+  ["#ff6a1a", "#9a2c00"],
+  ["#ffb02e", "#c2410c"],
+  ["#ff4d2e", "#7a1406"],
+  ["#f4a261", "#6b2d0b"],
+  ["#ffd27a", "#d9480f"],
+  ["#c9b8a6", "#4a3f37"],
+  ["#ff8a5c", "#5c1a0a"],
 ] as const;
 
 interface AvatarProps {
   name: string;
   src?: string | null;
   size?: number;
-  /** Organizations get rounded squares, people get circles (like X). */
+  /** Organizations get rounded squares, people get circles. */
   shape?: "circle" | "square";
   colors: readonly [string, string];
   className?: string;
